@@ -1,0 +1,16 @@
+{
+  "name": "Example Show",
+  "rate": "30",
+  "settings": { "autoFire": true, "chaseOnLocate": true, "standbySeconds": 10, "locateThresholdSeconds": 2, "oscTarget": "" },
+  "cues": [
+    { "id": "ex1", "number": "0", "name": "House open / preset", "dept": "SM", "tc": "", "auto": true, "notes": "Manual. Wait for FOH clearance.", "osc": "" },
+    { "id": "ex2", "number": "1", "name": "House to half", "dept": "LX", "tc": "01:00:00:00", "auto": true, "notes": "", "osc": "" },
+    { "id": "ex3", "number": "2", "name": "Walk-in music out", "dept": "SND", "tc": "01:00:05:00", "auto": true, "notes": "", "osc": "/cue/2/start" },
+    { "id": "ex4", "number": "3", "name": "Opening video", "dept": "VID", "tc": "01:00:10:00", "auto": true, "notes": "Standby projection", "osc": "" },
+    { "id": "ex5", "number": "4", "name": "Fly in drop A", "dept": "FLY", "tc": "01:00:20:00", "auto": false, "notes": "Called by SM — safety cue, never auto", "osc": "" },
+    { "id": "ex6", "number": "5", "name": "Stage wash up", "dept": "LX", "tc": "01:00:25:00", "auto": true, "notes": "", "osc": "" },
+    { "id": "ex7", "number": "5.5", "name": "Actor entrance (visual)", "dept": "SM", "tc": "", "auto": true, "notes": "Manual GO on visual", "osc": "" },
+    { "id": "ex8", "number": "6", "name": "Haze + pyro", "dept": "PYRO", "tc": "01:00:40:00", "auto": false, "notes": "Pyro needs operator confirm", "osc": "" },
+    { "id": "ex9", "number": "7", "name": "Blackout", "dept": "LX", "tc": "01:00:50:00", "auto": true, "notes": "", "osc": "" }
+  ]
+}

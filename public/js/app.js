@@ -1,0 +1,597 @@
+// Show Notes — browser app.
+// Connects to the server over WebSocket (shared state across devices). If no server
+// is reachable it runs the same engine locally and saves to localStorage.
+import { apply, createState, normalizeShow, currentCue, nextCue, countdown, cueIndex, DEPARTMENTS } from './engine.js';
+import { RATES, rateById, parseTC, formatTC, formatDuration, tcSeconds } from './timecode.js';
+import {
+  SOURCE_TYPES, InternalClock, LTCSource, MTCSource, LTCGenerator,
+  listAudioInputs, listAudioOutputs, getMIDIAccess, secureContextNote,
+} from './sources.js';
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => [...document.querySelectorAll(sel)];
+const LS_SHOW = 'shownotes.show';
+const LS_PREFS = 'shownotes.prefs';
+
+const prefs = { name: '', source: 'none', ltcDevice: '', ltcChannel: 0, mtcInput: '', ...JSON.parse(localStorage.getItem(LS_PREFS) || '{}') };
+const savePrefs = () => localStorage.setItem(LS_PREFS, JSON.stringify(prefs));
+
+// ---- store ---------------------------------------------------------------
+const store = {
+  state: createState(loadLocalShow()),
+  ws: null,
+  connected: false,
+  myId: null,
+  clients: [],
+  lastTcAt: 0,
+};
+
+function loadLocalShow() {
+  try { return normalizeShow(JSON.parse(localStorage.getItem(LS_SHOW))); } catch { return normalizeShow({}); }
+}
+
+function dispatch(action) {
+  if (store.connected) {
+    store.ws.send(JSON.stringify({ type: 'action', action }));
+    return;
+  }
+  const prev = store.state;
+  const { state, events } = apply(prev, { ...action, source: action.source || prefs.name || 'local' });
+  store.state = state;
+  if (state.show !== prev.show) localStorage.setItem(LS_SHOW, JSON.stringify(state.show));
+  if (state.runtime.tc !== prev.runtime.tc) store.lastTcAt = performance.now();
+  events.forEach(onEngineEvent);
+  render(prev);
+}
+
+function connect() {
+  if (location.protocol === 'file:') return setConn('local');
+  const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+  let opened = false;
+  ws.onopen = () => {
+    opened = true;
+    store.ws = ws;
+    store.connected = true;
+    setConn('online');
+    ws.send(JSON.stringify({ type: 'identify', name: prefs.name || deviceName(), role: activeSource ? 'tc-master' : 'viewer' }));
+  };
+  ws.onmessage = (e) => onServerMessage(JSON.parse(e.data));
+  ws.onclose = () => {
+    store.connected = false;
+    store.ws = null;
+    setConn(opened ? 'lost' : 'local');
+    setTimeout(connect, opened ? 1000 : 3000);
+  };
+}
+
+function onServerMessage(msg) {
+  const prev = store.state;
+  switch (msg.type) {
+    case 'hello':
+      store.myId = msg.id;
+      store.state = { show: msg.show, runtime: msg.runtime, log: msg.log || [] };
+      break;
+    case 'show':
+      store.state = { ...store.state, show: msg.show };
+      break;
+    case 'runtime':
+      if (msg.runtime.tc !== prev.runtime.tc) store.lastTcAt = performance.now();
+      store.state = { ...store.state, runtime: msg.runtime };
+      break;
+    case 'log':
+      store.state = { ...store.state, log: msg.log };
+      break;
+    case 'event':
+      store.state = { ...store.state, log: [...store.state.log, msg.event.entry].slice(-500) };
+      onEngineEvent(msg.event);
+      break;
+    case 'clients':
+      store.clients = msg.clients;
+      renderClients();
+      return;
+  }
+  render(prev);
+}
+
+function onEngineEvent(ev) {
+  if (ev.type === 'fired') flashGo();
+}
+
+function deviceName() {
+  return /iPad|iPhone|Android/.test(navigator.userAgent) ? 'Tablet' : 'Browser';
+}
+
+function setConn(mode) {
+  const pill = $('#connPill');
+  const text = { online: 'Connected', lost: 'Reconnecting…', local: 'Local only' }[mode];
+  pill.textContent = text;
+  pill.className = 'pill ' + ({ online: 'ok', lost: 'bad', local: 'warn' }[mode]);
+  pill.title = mode === 'local' ? 'No Show Notes server found: changes are saved in this browser only.' : 'Synced with the Show Notes server';
+}
+
+// ---- rendering -----------------------------------------------------------
+let selectedId = null;
+
+function render(prev = {}) {
+  const { show, runtime, log } = store.state;
+  if (!prev.show || prev.show !== show) renderSettings();
+  if (!prev.show || prev.show !== show || prev.runtime?.currentCueId !== runtime.currentCueId) renderTable();
+  if (!prev.log || prev.log !== log) renderLog();
+  renderBand();
+}
+
+function renderBand() {
+  const state = store.state;
+  const { show, runtime } = state;
+  const tc = runtime.tc;
+  const stale = !tc || performance.now() - store.lastTcAt > 1000;
+  const tcEl = $('#tcDisplay');
+  tcEl.textContent = formatTC(tc);
+  tcEl.classList.toggle('stale', stale);
+  $('#tcRate').textContent = tc ? `${tc.fps}${tc.drop ? ' DF' : ''} fps` : rateById(show.rate).label;
+  $('#tcSource').textContent = tc ? `${tc.source}${stale ? ' (stopped)' : ''}` : 'no source';
+
+  const tcPill = $('#tcPill');
+  tcPill.textContent = !tc ? 'No timecode' : stale ? 'TC stopped' : `TC ${tc.source.toUpperCase()}`;
+  tcPill.className = 'pill ' + (!tc ? '' : stale ? 'warn' : 'ok');
+
+  const cur = currentCue(state);
+  $('#curNum').textContent = cur ? cur.number : '—';
+  $('#curName').textContent = cur ? cur.name : 'Ready — top of show';
+  $('#curMeta').textContent = cur ? [cur.dept, cur.tc].filter(Boolean).join(' · ') : '';
+
+  const next = nextCue(state);
+  $('#nextNum').textContent = next ? next.number : '—';
+  $('#nextName').textContent = next ? next.name : 'End of cue list';
+  $('#nextMeta').textContent = next ? [next.dept, next.tc || 'manual GO', next.notes].filter(Boolean).join(' · ') : '';
+  const cd = countdown(state);
+  const timed = cd != null && next?.auto !== false && show.settings.autoFire;
+  $('#countdown').textContent = cd == null ? '' : cd < 0 ? `TC passed ${formatDuration(-cd)} ago` : (timed ? 'in ' : 'TC in ') + formatDuration(cd);
+  const standby = !!next && cd != null && cd >= 0 && cd <= show.settings.standbySeconds && !stale;
+  $('#nextBox').classList.toggle('standby', standby);
+  const nextRow = next && document.querySelector(`tr[data-id="${next.id}"]`);
+  $$('tr.standby').forEach((r) => r !== nextRow && r.classList.remove('standby'));
+  nextRow?.classList.toggle('standby', standby);
+  $('#autoFireChk').checked = !!show.settings.autoFire;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function renderTable() {
+  const { show, runtime } = store.state;
+  const curIdx = cueIndex(show, runtime.currentCueId);
+  const body = $('#cueTable tbody');
+  body.innerHTML = show.cues
+    .map((c, i) => {
+      const cls = [i < curIdx ? 'done' : '', i === curIdx ? 'current' : '', i === curIdx + 1 ? 'next' : '', c.id === selectedId ? 'selected' : '']
+        .filter(Boolean).join(' ');
+      return `<tr data-id="${c.id}" class="${cls}">
+        <td class="num">${esc(c.number)}</td>
+        <td>${esc(c.name)}</td>
+        <td><span class="dept dept-${esc(c.dept)}">${esc(c.dept)}</span></td>
+        <td class="trig">${esc(c.tc) || '<span title="Manual GO">—</span>'}</td>
+        <td>${c.tc ? (c.auto === false ? '✗' : '✓') : ''}</td>
+        <td class="notes">${esc(c.notes)}</td>
+        <td class="actions">
+          <button data-act="goto" title="Fire this cue now">GO</button>
+          <button data-act="load" title="Make this the current cue without firing">Load</button>
+          <span class="edit-only">
+            <button data-act="up" title="Move up">↑</button>
+            <button data-act="down" title="Move down">↓</button>
+            <button data-act="edit">Edit</button>
+            <button data-act="del" title="Delete">✕</button>
+          </span>
+        </td>
+      </tr>`;
+    })
+    .join('');
+  $('#emptyMsg').hidden = show.cues.length > 0;
+  scrollRowIntoView(body.querySelector('tr.current'));
+}
+
+// Scroll only the cue table, never the page.
+function scrollRowIntoView(row) {
+  const wrap = $('.table-wrap');
+  if (!row || !wrap) return;
+  const head = wrap.querySelector('thead').offsetHeight;
+  const top = row.offsetTop - head, bottom = row.offsetTop + row.offsetHeight;
+  if (top < wrap.scrollTop) wrap.scrollTop = top;
+  else if (bottom > wrap.scrollTop + wrap.clientHeight) wrap.scrollTop = bottom - wrap.clientHeight;
+}
+
+function renderLog() {
+  const items = store.state.log.slice(-200).reverse();
+  $('#log').innerHTML = items
+    .map((e) => {
+      const time = new Date(e.at).toLocaleTimeString([], { hour12: false });
+      const label = e.kind === 'reset' ? 'Reset' : `${e.kind === 'fire' ? 'GO' : e.kind} ${esc(e.number)} ${esc(e.name)}`;
+      return `<li class="k-${e.kind}"><span class="t">${time}</span><span class="tc">${esc(e.tc)}</span><span>${label}<small> · ${esc(e.source)}</small></span></li>`;
+    })
+    .join('');
+}
+
+function renderSettings() {
+  const { show } = store.state;
+  $('#showName').textContent = show.name;
+  document.title = `${show.name} · Show Notes`;
+  const set = (sel, v) => { const el = $(sel); if (document.activeElement !== el) el.value = v; };
+  set('#setName', show.name);
+  set('#setRate', show.rate);
+  set('#setStandby', show.settings.standbySeconds);
+  set('#setOsc', show.settings.oscTarget || '');
+  $('#setChase').checked = !!show.settings.chaseOnLocate;
+}
+
+function renderClients() {
+  $('#clients').innerHTML = store.clients
+    .map((c) => `<li class="${c.id === store.myId ? 'me' : ''}">${esc(c.name)}${c.role === 'tc-master' ? ' <span class="role">· TC master</span>' : ''}${c.id === store.myId ? ' (you)' : ''}</li>`)
+    .join('') || '<li>Only this browser</li>';
+}
+
+function flashGo() {
+  const b = $('#goBtn');
+  b.animate([{ filter: 'brightness(1.8)' }, { filter: 'brightness(1)' }], { duration: 400 });
+}
+
+// Repaint the band periodically so "stopped" / countdown stay fresh when no TC arrives.
+setInterval(renderBand, 250);
+
+// ---- views ---------------------------------------------------------------
+function setView(view) {
+  document.body.classList.remove('view-operate', 'view-edit', 'view-display');
+  document.body.classList.add(`view-${view}`);
+  $$('.views button').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+  const url = new URL(location.href);
+  if (view === 'operate') url.searchParams.delete('view');
+  else url.searchParams.set('view', view);
+  history.replaceState(null, '', url);
+}
+$$('.views button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+
+// ---- transport + table ---------------------------------------------------
+$('#goBtn').addEventListener('click', () => dispatch({ type: 'go' }));
+$('#backBtn').addEventListener('click', () => dispatch({ type: 'back' }));
+$('#resetBtn').addEventListener('click', () => confirm('Reset to the top of the show?') && dispatch({ type: 'reset' }));
+$('#autoFireChk').addEventListener('change', (e) => dispatch({ type: 'settings:update', patch: { autoFire: e.target.checked } }));
+
+$('#cueTable tbody').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr');
+  if (!tr) return;
+  const id = tr.dataset.id;
+  const act = e.target.closest('button')?.dataset.act;
+  if (act === 'goto') dispatch({ type: 'goto', cueId: id });
+  else if (act === 'load') dispatch({ type: 'goto', cueId: id, fire: false });
+  else if (act === 'up') dispatch({ type: 'cue:move', id, by: -1 });
+  else if (act === 'down') dispatch({ type: 'cue:move', id, by: 1 });
+  else if (act === 'edit') openCueDialog(id);
+  else if (act === 'del') {
+    const cue = store.state.show.cues.find((c) => c.id === id);
+    if (confirm(`Delete cue ${cue.number} ${cue.name}?`)) dispatch({ type: 'cue:delete', id });
+  } else {
+    selectedId = id;
+    $$('#cueTable tr.selected').forEach((r) => r.classList.remove('selected'));
+    tr.classList.add('selected');
+  }
+});
+$('#cueTable tbody').addEventListener('dblclick', (e) => {
+  const tr = e.target.closest('tr');
+  if (tr && document.body.classList.contains('view-edit')) openCueDialog(tr.dataset.id);
+});
+
+// ---- cue editor ----------------------------------------------------------
+const dlg = $('#cueDialog');
+const form = $('#cueForm');
+form.dept.innerHTML = DEPARTMENTS.map((d) => `<option>${d}</option>`).join('');
+let editingId = null;
+
+function suggestNumber() {
+  const nums = store.state.show.cues.map((c) => parseFloat(c.number)).filter((n) => isFinite(n));
+  return String(nums.length ? Math.floor(Math.max(...nums)) + 1 : 1);
+}
+
+function openCueDialog(id, defaults = {}) {
+  editingId = id;
+  const cue = id ? store.state.show.cues.find((c) => c.id === id) : { number: suggestNumber(), name: '', dept: 'SM', tc: '', auto: true, notes: '', osc: '', ...defaults };
+  $('#cueDialogTitle').textContent = id ? `Edit cue ${cue.number}` : 'New cue';
+  for (const k of ['number', 'name', 'dept', 'tc', 'notes', 'osc']) form[k].value = cue[k] ?? '';
+  form.auto.checked = cue.auto !== false;
+  $('#cueFormErr').hidden = true;
+  dlg.showModal();
+  form.name.focus();
+}
+
+form.addEventListener('submit', (e) => {
+  if (e.submitter?.value !== 'save') return;
+  const data = {
+    number: form.number.value.trim(),
+    name: form.name.value.trim(),
+    dept: form.dept.value,
+    tc: form.tc.value.trim(),
+    auto: form.auto.checked,
+    notes: form.notes.value.trim(),
+    osc: form.osc.value.trim(),
+  };
+  if (data.tc) {
+    const tc = parseTC(data.tc);
+    if (!tc) {
+      e.preventDefault();
+      $('#cueFormErr').textContent = 'Timecode must look like HH:MM:SS:FF (use ; before frames for drop-frame).';
+      $('#cueFormErr').hidden = false;
+      return;
+    }
+    data.tc = formatTC(tc, rateById(store.state.show.rate).drop);
+  }
+  if (editingId) dispatch({ type: 'cue:update', id: editingId, patch: data });
+  else dispatch({ type: 'cue:add', cue: data, afterId: selectedId || undefined });
+});
+
+$('#addCueBtn').addEventListener('click', () => openCueDialog(null));
+$('#captureBtn').addEventListener('click', captureCue);
+$('#sortBtn').addEventListener('click', () => dispatch({ type: 'cue:sort' }));
+
+function captureCue() {
+  const tc = store.state.runtime.tc;
+  if (!tc) return alert('No timecode yet. Connect a timecode source first.');
+  openCueDialog(null, { tc: formatTC(tc, rateById(store.state.show.rate).drop) });
+}
+
+// ---- settings ------------------------------------------------------------
+$('#setRate').innerHTML = RATES.map((r) => `<option value="${r.id}">${r.label}</option>`).join('');
+$('#setName').addEventListener('change', (e) => dispatch({ type: 'show:update', patch: { name: e.target.value.trim() || 'Untitled Show' } }));
+$('#setRate').addEventListener('change', (e) => dispatch({ type: 'show:update', patch: { rate: e.target.value } }));
+$('#setStandby').addEventListener('change', (e) => dispatch({ type: 'settings:update', patch: { standbySeconds: Math.max(0, +e.target.value || 0) } }));
+$('#setChase').addEventListener('change', (e) => dispatch({ type: 'settings:update', patch: { chaseOnLocate: e.target.checked } }));
+$('#setOsc').addEventListener('change', (e) => dispatch({ type: 'settings:update', patch: { oscTarget: e.target.value.trim() } }));
+
+// ---- import / export -----------------------------------------------------
+const CSV_COLS = ['number', 'name', 'dept', 'tc', 'auto', 'notes', 'osc'];
+
+function download(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const slug = () => store.state.show.name.replace(/[^\w-]+/g, '_');
+const csvCell = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v ?? ''));
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') q = false;
+      else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell); rows.push(row); row = []; cell = '';
+    } else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter((r) => r.some((c) => c.trim()));
+}
+
+$('#exportJsonBtn').addEventListener('click', () => download(`${slug()}.shownotes.json`, JSON.stringify(store.state.show, null, 2), 'application/json'));
+$('#exportCsvBtn').addEventListener('click', () => {
+  const lines = [CSV_COLS.join(',')].concat(store.state.show.cues.map((c) => CSV_COLS.map((k) => csvCell(k === 'auto' ? (c.auto === false ? 'no' : 'yes') : c[k])).join(',')));
+  download(`${slug()}-cues.csv`, lines.join('\n'), 'text/csv');
+});
+$('#exportLogBtn').addEventListener('click', () => {
+  const cols = ['at', 'tc', 'kind', 'number', 'name', 'dept', 'source'];
+  const lines = [cols.join(',')].concat(store.state.log.map((e) => cols.map((k) => csvCell(k === 'at' ? new Date(e.at).toISOString() : e[k])).join(',')));
+  download(`${slug()}-show-log.csv`, lines.join('\n'), 'text/csv');
+});
+$('#clearLogBtn').addEventListener('click', () => confirm('Clear the show log?') && dispatch({ type: 'log:clear' }));
+
+let importKind = 'json';
+$('#importJsonBtn').addEventListener('click', () => { importKind = 'json'; $('#fileInput').click(); });
+$('#importCsvBtn').addEventListener('click', () => { importKind = 'csv'; $('#fileInput').click(); });
+$('#fileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const text = await file.text();
+  try {
+    if (importKind === 'json' || file.name.endsWith('.json')) {
+      if (!confirm('Replace the whole show with this file?')) return;
+      dispatch({ type: 'show:replace', show: JSON.parse(text) });
+    } else {
+      const [header, ...rows] = parseCSV(text);
+      const idx = Object.fromEntries(header.map((h, i) => [h.trim().toLowerCase(), i]));
+      const get = (r, k) => (idx[k] != null ? (r[idx[k]] || '').trim() : '');
+      const cues = rows.map((r) => ({
+        number: get(r, 'number') || get(r, 'cue'),
+        name: get(r, 'name'),
+        dept: (get(r, 'dept') || 'SM').toUpperCase(),
+        tc: get(r, 'tc') || get(r, 'timecode'),
+        auto: !/^(no|false|0|n)$/i.test(get(r, 'auto')),
+        notes: get(r, 'notes'),
+        osc: get(r, 'osc'),
+      }));
+      const replace = confirm(`Import ${cues.length} cues.\nOK = replace the cue list, Cancel = append to it.`);
+      dispatch({ type: 'show:replace', show: { ...store.state.show, cues: replace ? cues : [...store.state.show.cues, ...cues] } });
+    }
+  } catch (err) {
+    alert(`Import failed: ${err.message}`);
+  }
+});
+
+// ---- timecode sources ----------------------------------------------------
+let activeSource = null;
+let midiAccess = null;
+
+$('#srcType').innerHTML = Object.entries(SOURCE_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+$('#srcType').value = prefs.source;
+$('#ltcChannel').innerHTML = Array.from({ length: 64 }, (_, i) => `<option value="${i}">${i + 1}</option>`).join('');
+$('#ltcChannel').value = prefs.ltcChannel;
+
+function showSourceOptions() {
+  const type = $('#srcType').value;
+  $$('.src-opts').forEach((el) => (el.hidden = el.dataset.src !== type));
+  const note = type === 'ltc' || type === 'mtc' ? secureContextNote() : '';
+  $('#secureWarn').hidden = !note;
+  $('#secureWarn').textContent = note;
+  if (type === 'ltc') refreshAudioDevices();
+  if (type === 'mtc') refreshMidi();
+}
+
+async function refreshAudioDevices() {
+  const devices = await listAudioInputs().catch(() => []);
+  const sel = $('#ltcDevice');
+  sel.innerHTML = '<option value="">Default input</option>' +
+    devices.map((d) => `<option value="${d.deviceId}">${esc(d.label || 'Input ' + d.deviceId.slice(0, 6))}</option>`).join('');
+  // Prefer a Dante device when nothing is chosen yet.
+  const dante = devices.find((d) => /dante/i.test(d.label));
+  sel.value = devices.some((d) => d.deviceId === prefs.ltcDevice) ? prefs.ltcDevice : dante ? dante.deviceId : '';
+}
+
+async function refreshMidi() {
+  try {
+    midiAccess = midiAccess || (await getMIDIAccess());
+    const sel = $('#mtcInput');
+    sel.innerHTML = '<option value="">All inputs</option>' + [...midiAccess.inputs.values()].map((i) => `<option value="${i.id}">${esc(i.name)}</option>`).join('');
+    sel.value = prefs.mtcInput;
+  } catch (e) {
+    setSrcStatus({ state: 'error', text: e.message });
+  }
+}
+
+function setSrcStatus(s) {
+  $('#srcStatus').textContent = s.text;
+}
+
+function sendTC(tc) {
+  dispatch({ type: 'timecode', tc });
+}
+
+async function startSource() {
+  stopSource();
+  const type = $('#srcType').value;
+  prefs.source = type;
+  savePrefs();
+  const rate = rateById(store.state.show.rate);
+  const common = { onTC: sendTC, onStatus: setSrcStatus };
+  try {
+    if (type === 'internal') {
+      activeSource = new InternalClock({ ...common, fps: rate.fps, drop: rate.drop });
+      activeSource.locate($('#clockLocate').value);
+      setSrcStatus({ text: 'Internal clock ready. Press Run.' });
+    } else if (type === 'ltc') {
+      prefs.ltcDevice = $('#ltcDevice').value;
+      prefs.ltcChannel = +$('#ltcChannel').value;
+      savePrefs();
+      activeSource = new LTCSource({
+        ...common, deviceId: prefs.ltcDevice, channel: prefs.ltcChannel, fps: rate.fps,
+        onLevel: (peak, channels) => {
+          $('#ltcMeter').style.width = `${Math.min(100, peak * 100)}%`;
+          if (channels && channels <= prefs.ltcChannel) setSrcStatus({ text: `Input only has ${channels} channel(s) — pick channel ≤ ${channels}.` });
+        },
+      });
+      await activeSource.start();
+      refreshAudioDevices(); // labels become available after permission is granted
+    } else if (type === 'mtc') {
+      midiAccess = midiAccess || (await getMIDIAccess());
+      prefs.mtcInput = $('#mtcInput').value;
+      savePrefs();
+      activeSource = new MTCSource({ ...common, access: midiAccess, inputId: prefs.mtcInput });
+      activeSource.start();
+    } else {
+      setSrcStatus({ text: 'Not connected.' });
+    }
+  } catch (e) {
+    activeSource = null;
+    setSrcStatus({ text: `Could not start: ${e.message}` });
+  }
+  identify();
+}
+
+function stopSource() {
+  activeSource?.destroy();
+  activeSource = null;
+  $('#ltcMeter').style.width = '0';
+  setSrcStatus({ text: 'Not connected.' });
+  identify();
+}
+
+function identify() {
+  if (store.connected) store.ws.send(JSON.stringify({ type: 'identify', name: prefs.name || deviceName(), role: activeSource ? 'tc-master' : 'viewer' }));
+}
+
+$('#srcType').addEventListener('change', showSourceOptions);
+$('#srcStart').addEventListener('click', startSource);
+$('#srcStop').addEventListener('click', stopSource);
+$('#ltcChannel').addEventListener('change', (e) => {
+  prefs.ltcChannel = +e.target.value;
+  savePrefs();
+  if (activeSource instanceof LTCSource) activeSource.setChannel(prefs.ltcChannel);
+});
+$('#clockStart').addEventListener('click', async () => {
+  if (!(activeSource instanceof InternalClock)) { $('#srcType').value = 'internal'; await startSource(); }
+  activeSource.start();
+});
+$('#clockStop').addEventListener('click', () => activeSource instanceof InternalClock && activeSource.stop());
+$('#clockLocateBtn').addEventListener('click', () => {
+  if (activeSource instanceof InternalClock) {
+    if (!activeSource.locate($('#clockLocate').value)) alert('Timecode must look like HH:MM:SS:FF');
+  }
+});
+
+let generator = null;
+$('#genBtn').addEventListener('click', async () => {
+  if (generator) {
+    generator.destroy();
+    generator = null;
+    $('#genBtn').textContent = 'Start generator';
+    return;
+  }
+  const rate = rateById(store.state.show.rate);
+  generator = new LTCGenerator({ fps: rate.fps, drop: rate.drop, startTC: $('#genStart').value, sinkId: $('#genOut').value });
+  try {
+    await generator.start();
+    $('#genBtn').textContent = 'Stop generator';
+  } catch (e) {
+    generator = null;
+    alert(`Generator failed: ${e.message}`);
+  }
+});
+$('details').addEventListener('toggle', async () => {
+  const outs = await listAudioOutputs().catch(() => []);
+  $('#genOut').innerHTML = '<option value="">Default output</option>' + outs.filter((o) => o.deviceId !== 'default').map((o) => `<option value="${o.deviceId}">${esc(o.label || 'Output')}</option>`).join('');
+});
+
+$('#clientName').value = prefs.name;
+$('#clientName').addEventListener('change', (e) => { prefs.name = e.target.value.trim(); savePrefs(); identify(); });
+
+// ---- keyboard ------------------------------------------------------------
+document.addEventListener('keydown', (e) => {
+  if (e.target.closest('input, textarea, select, dialog') || e.metaKey || e.ctrlKey || e.altKey) return;
+  const cues = store.state.show.cues;
+  if (e.code === 'Space') { e.preventDefault(); dispatch({ type: 'go' }); }
+  else if (e.key === 'Backspace') { e.preventDefault(); dispatch({ type: 'back' }); }
+  else if (e.key === 'Escape') setView('operate');
+  else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const i = cueIndex(store.state.show, selectedId ?? store.state.runtime.currentCueId);
+    const n = cues[Math.max(0, Math.min(cues.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)))];
+    if (n) { selectedId = n.id; renderTable(); scrollRowIntoView(document.querySelector('tr.selected')); }
+  } else if (e.key === 'Enter' && selectedId) dispatch({ type: 'goto', cueId: selectedId, fire: false });
+  else if (e.key.toLowerCase() === 'c' && document.body.classList.contains('view-edit')) captureCue();
+});
+
+// ---- boot ----------------------------------------------------------------
+setView(new URLSearchParams(location.search).get('view') || 'operate');
+showSourceOptions();
+render();
+renderClients();
+connect();
+if (prefs.source !== 'none' && prefs.source !== 'ltc' && prefs.source !== 'mtc') startSource();
+
+// Exposed for debugging / automation from the console.
+window.showNotes = { store, dispatch, tcSeconds };

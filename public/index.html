@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Show Notes</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Show Notes</div>
+    <div class="show-name" id="showName" title="Show name">Untitled Show</div>
+    <div class="pills">
+      <span class="pill" id="connPill" title="Server connection">Offline</span>
+      <span class="pill" id="tcPill" title="Timecode source">No timecode</span>
+    </div>
+    <nav class="views">
+      <button data-view="operate" class="active">Operate</button>
+      <button data-view="edit">Edit</button>
+      <button data-view="display">Display</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Status band: timecode, current and next cue, GO -->
+    <section class="band">
+      <div class="clock">
+        <div class="tcbig" id="tcDisplay">--:--:--:--</div>
+        <div class="tc-meta"><span id="tcRate">—</span> · <span id="tcSource">no source</span></div>
+      </div>
+      <div class="cuebox current">
+        <div class="label">Current</div>
+        <div class="num" id="curNum">—</div>
+        <div class="name" id="curName">Ready</div>
+        <div class="meta" id="curMeta"></div>
+      </div>
+      <div class="cuebox next" id="nextBox">
+        <div class="label">Next <span id="standbyTag" class="standby-tag">STANDBY</span></div>
+        <div class="num" id="nextNum">—</div>
+        <div class="name" id="nextName"></div>
+        <div class="meta"><span id="nextMeta"></span> <span class="countdown" id="countdown"></span></div>
+      </div>
+      <div class="transport">
+        <button class="go" id="goBtn" title="GO (Space)">GO</button>
+        <div class="row">
+          <button id="backBtn" title="Back (Backspace)">◀ Back</button>
+          <button id="resetBtn" title="Reset to top">⟲ Reset</button>
+        </div>
+        <label class="toggle"><input type="checkbox" id="autoFireChk" /> Auto-fire from TC</label>
+      </div>
+    </section>
+
+    <div class="layout">
+      <!-- Cue list -->
+      <section class="panel cues">
+        <div class="panel-head">
+          <h2>Cue list</h2>
+          <div class="tools edit-only">
+            <button id="addCueBtn">+ Cue</button>
+            <button id="captureBtn" title="Add a cue at the current timecode (C)">+ Cue @ TC</button>
+            <button id="sortBtn" title="Sort timed cues by trigger time">Sort by TC</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="cueTable">
+            <thead>
+              <tr><th>Cue</th><th>Name</th><th>Dept</th><th>Trigger TC</th><th title="Fire automatically from timecode">Auto</th><th>Notes</th><th class="actions"></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p class="empty" id="emptyMsg">No cues yet. Switch to <b>Edit</b> and add some, or import a CSV.</p>
+        </div>
+      </section>
+
+      <!-- Side panels -->
+      <aside class="side">
+        <section class="panel">
+          <div class="panel-head"><h2>Timecode source</h2></div>
+          <div class="field">
+            <label for="srcType">Source</label>
+            <select id="srcType"></select>
+          </div>
+          <p class="warn" id="secureWarn" hidden></p>
+
+          <div class="src-opts" data-src="ltc" hidden>
+            <div class="field">
+              <label for="ltcDevice">Audio input <small>(Dante Virtual Soundcard / Dante Via)</small></label>
+              <select id="ltcDevice"><option value="">Default input</option></select>
+            </div>
+            <div class="field">
+              <label for="ltcChannel">Channel</label>
+              <select id="ltcChannel"></select>
+            </div>
+            <div class="meter"><div id="ltcMeter"></div></div>
+          </div>
+
+          <div class="src-opts" data-src="mtc" hidden>
+            <div class="field">
+              <label for="mtcInput">MIDI input</label>
+              <select id="mtcInput"><option value="">All inputs</option></select>
+            </div>
+          </div>
+
+          <div class="src-opts" data-src="internal" hidden>
+            <div class="row">
+              <button id="clockStart">▶ Run</button>
+              <button id="clockStop">■ Stop</button>
+            </div>
+            <div class="field inline">
+              <input id="clockLocate" placeholder="01:00:00:00" value="01:00:00:00" />
+              <button id="clockLocateBtn">Locate</button>
+            </div>
+          </div>
+
+          <div class="row">
+            <button id="srcStart" class="primary">Connect source</button>
+            <button id="srcStop">Disconnect</button>
+          </div>
+          <p class="status" id="srcStatus">Not connected.</p>
+          <p class="hint">This browser sends the timecode to the server, and every connected device follows it.</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Show log</h2><div class="tools"><button id="exportLogBtn">CSV</button><button id="clearLogBtn">Clear</button></div></div>
+          <ol class="log" id="log"></ol>
+        </section>
+
+        <section class="panel edit-only">
+          <div class="panel-head"><h2>Show settings</h2></div>
+          <div class="field"><label for="setName">Show name</label><input id="setName" /></div>
+          <div class="field"><label for="setRate">Frame rate</label><select id="setRate"></select></div>
+          <div class="field"><label for="setStandby">Standby warning (seconds)</label><input id="setStandby" type="number" min="0" step="1" /></div>
+          <label class="toggle"><input type="checkbox" id="setChase" /> Chase cues when timecode jumps</label>
+          <div class="field"><label for="setOsc">OSC output target <small>(host:port, e.g. QLab 127.0.0.1:53000)</small></label><input id="setOsc" placeholder="127.0.0.1:53000" /></div>
+          <div class="row wrap">
+            <button id="exportJsonBtn">Export show</button>
+            <button id="importJsonBtn">Import show</button>
+            <button id="exportCsvBtn">Export CSV</button>
+            <button id="importCsvBtn">Import CSV</button>
+            <input type="file" id="fileInput" accept=".json,.csv,text/csv,application/json" hidden />
+          </div>
+          <details>
+            <summary>LTC test generator</summary>
+            <p class="hint">Plays LTC to an audio output. Pick Dante Virtual Soundcard as the output to put it on the Dante network, or loop it back to test.</p>
+            <div class="field"><label for="genOut">Output</label><select id="genOut"><option value="">Default output</option></select></div>
+            <div class="field inline"><input id="genStart" value="01:00:00:00" /><button id="genBtn">Start generator</button></div>
+          </details>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Connected</h2></div>
+          <ul class="clients" id="clients"></ul>
+          <div class="field"><label for="clientName">This device</label><input id="clientName" placeholder="e.g. SM desk" /></div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <dialog id="cueDialog">
+    <form method="dialog" id="cueForm">
+      <h3 id="cueDialogTitle">Edit cue</h3>
+      <div class="grid2">
+        <div class="field"><label>Cue #</label><input name="number" required /></div>
+        <div class="field"><label>Department</label><select name="dept"></select></div>
+      </div>
+      <div class="field"><label>Name</label><input name="name" /></div>
+      <div class="grid2">
+        <div class="field"><label>Trigger timecode <small>(blank = manual GO)</small></label><input name="tc" placeholder="01:00:00:00" /></div>
+        <div class="field"><label>&nbsp;</label><label class="toggle"><input type="checkbox" name="auto" /> Fire from timecode</label></div>
+      </div>
+      <div class="field"><label>Notes / standby call</label><textarea name="notes" rows="3"></textarea></div>
+      <div class="field"><label>OSC on fire <small>(e.g. /cue/12/start — one per line)</small></label><textarea name="osc" rows="2"></textarea></div>
+      <p class="warn" id="cueFormErr" hidden></p>
+      <menu>
+        <button value="cancel" formnovalidate>Cancel</button>
+        <button value="save" class="primary">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
