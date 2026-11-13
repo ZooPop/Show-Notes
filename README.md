@@ -98,7 +98,7 @@ There's also an **LTC test generator** under Edit → Show settings. It plays LT
 
 A second version of the page lives at **`http://<computer>:3000/video`**. It's the same show, cues and timecode, plus a live **program feed**: video on the left, with timecode, CURRENT and NEXT stacked on the right, in both the Operate and Display views. The regular page at `/` is unchanged. Both versions stay in sync.
 
-**Switching:** click the **SHOW NOTES** title (top left) to toggle between the two versions. Under the title, **○ VIDEO** (dim) means off and **● VIDEO** (red) means on. You stay in the same tab (Operate, Edit or Display).
+**Switching:** click the **SHOW NOTES** title (top left) to toggle between the two versions. The **VIDEO** slider under the title is grey when off and red when on. You stay in the same tab (Operate, Edit or Display).
 
 Pick the feed under **Program feed** (Operate view). Each screen chooses its own source:
 

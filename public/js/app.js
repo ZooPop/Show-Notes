@@ -762,8 +762,11 @@ if (VIDEO_IN) {
 // ---- Title button: switch between Show Notes and Show Notes · Video ----------
 {
   const btn = $('#modeToggle');
-  btn.title = VIDEO_IN ? 'Switch to Show Notes (no video)' : 'Switch to Show Notes · Video';
+  btn.title = VIDEO_IN ? 'Turn video off (switch to Show Notes)' : 'Turn video on (switch to Show Notes · Video)';
+  btn.classList.toggle('on', VIDEO_IN);
+  btn.setAttribute('aria-checked', String(VIDEO_IN));
   btn.addEventListener('click', () => {
-    location.href = (VIDEO_IN ? '/' : '/video') + location.search; // keeps the current tab (?view=…)
+    btn.classList.toggle('on', !VIDEO_IN); // slide the knob, then switch pages
+    setTimeout(() => { location.href = (VIDEO_IN ? '/' : '/video') + location.search; }, 220); // keeps the current tab
   });
 }
