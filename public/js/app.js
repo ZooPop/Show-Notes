@@ -145,10 +145,9 @@ function renderBand() {
   const next = nextCue(state);
   $('#nextNum').textContent = next ? next.number : '—';
   $('#nextName').textContent = next ? next.name : 'End of cue list';
-  setNextNotes(next ? next.notes || '' : '');
+  $('#nextNotes').textContent = next ? next.notes || '' : '';
+  fitDisplayBoxes();
   const cd = countdown(state);
-  const timed = cd != null && next?.auto !== false && show.settings.autoFire;
-  $('#countdown').textContent = cd == null ? '' : cd < 0 ? `TC passed ${formatDuration(-cd)} ago` : (timed ? 'in ' : 'TC in ') + formatDuration(cd);
   const standby = !!next && cd != null && cd >= 0 && cd <= show.settings.standbySeconds && !stale;
   $('#nextBox').classList.toggle('standby', standby);
   const nextRow = next && document.querySelector(`tr[data-id="${next.id}"]`);
@@ -162,28 +161,24 @@ function renderBand() {
   $('#autoFireChk').checked = !!show.settings.autoFire;
 }
 
-// NEXT shows only the notes. On the Display view the text shrinks until the whole note fits.
-let nextNotesKey = '';
-function setNextNotes(text) {
-  const el = $('#nextNotes');
-  const key = `${text}|${document.body.className}|${innerWidth}x${innerHeight}`;
-  if (key === nextNotesKey) return;
-  nextNotesKey = key;
-  el.textContent = text;
-  fitNextNotes();
-}
-function fitNextNotes() {
-  const el = $('#nextNotes');
-  el.style.fontSize = '';
-  if (!document.body.classList.contains('view-display') || !el.textContent) return;
-  let size = parseFloat(getComputedStyle(el).fontSize);
-  const min = 14;
-  while (el.scrollHeight > el.clientHeight + 1 && size > min) {
-    size -= 2;
-    el.style.fontSize = `${size}px`;
+// Display view: scale each CURRENT / NEXT box's text down until everything in it fits.
+let fitKey = '';
+function fitDisplayBoxes() {
+  const boxes = $$('.cuebox');
+  const key = boxes.map((b) => b.textContent).join('|') + `|${document.body.className}|${innerWidth}x${innerHeight}`;
+  if (key === fitKey) return;
+  fitKey = key;
+  for (const box of boxes) {
+    box.style.setProperty('--fit', 1);
+    if (!document.body.classList.contains('view-display')) continue;
+    let fit = 1;
+    while (box.scrollHeight > box.clientHeight + 1 && fit > 0.3) {
+      fit -= 0.04;
+      box.style.setProperty('--fit', fit.toFixed(2));
+    }
   }
 }
-addEventListener('resize', () => { nextNotesKey = ''; renderBand(); });
+addEventListener('resize', () => { fitKey = ''; renderBand(); });
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
