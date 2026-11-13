@@ -107,6 +107,7 @@ td.actions button { padding: 2px 8px; font-size: 12px; }
 .dept-SM { background: #f85149; } .dept-LX { background: #f2c94c; } .dept-SND { background: #58a6ff; }
 .dept-VID { background: #bc8cff; } .dept-FLY { background: #7ee787; } .dept-SFX { background: #ffa657; }
 .dept-PYRO { background: #ff7b72; } .dept-AUTO { background: #56d4dd; } .dept-OTHER { background: #8b949e; }
+.dept-SONG { background: #e6edf3; } .dept-MIC { background: #ff9bce; }
 .empty { color: var(--dim); text-align: center; padding: 24px; }
 
 /* log + clients */

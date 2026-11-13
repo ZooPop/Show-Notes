@@ -130,6 +130,8 @@ test/                     node --test suites (npm test)
 
 If no server is reachable (for example, the page was opened from static hosting), the app runs the same engine locally and saves to `localStorage`.
 
+**Show templates:** any show JSON in `data/` (committed) or `data/private/` (git-ignored, for shows with real names) appears under Edit → Show settings → *Load*. On first run, the server starts with the first private show if there is one, otherwise the example show.
+
 CSV import/export columns are `number,name,dept,tc,auto,notes,osc`.
 
 ## Environment variables

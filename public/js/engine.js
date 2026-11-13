@@ -5,7 +5,7 @@
 
 import { parseTC, formatTC, tcSeconds, rateById } from './timecode.js';
 
-export const DEPARTMENTS = ['SM', 'LX', 'SND', 'VID', 'FLY', 'SFX', 'PYRO', 'AUTO', 'OTHER'];
+export const DEPARTMENTS = ['SM', 'SONG', 'MIC', 'LX', 'SND', 'VID', 'FLY', 'SFX', 'PYRO', 'AUTO', 'OTHER'];
 const LOG_LIMIT = 500;
 
 export function uid() {

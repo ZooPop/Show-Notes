@@ -390,6 +390,23 @@ $('#exportLogBtn').addEventListener('click', () => {
 });
 $('#clearLogBtn').addEventListener('click', () => confirm('Clear the show log?') && dispatch({ type: 'log:clear' }));
 
+// Show templates served by the server (data/*.json and data/private/*.json).
+async function refreshTemplates() {
+  if (location.protocol === 'file:') return;
+  try {
+    const list = await (await fetch('/api/templates')).json();
+    $('#templateSel').innerHTML = list.map((t) => `<option value="${esc(t.id)}">${esc(t.name)} (${t.cues} cues)</option>`).join('');
+    $('#templateRow').hidden = !list.length;
+  } catch { /* no server */ }
+}
+$('#templateBtn').addEventListener('click', async () => {
+  const id = $('#templateSel').value;
+  if (!id || !confirm('Replace the current show with this template? Export first if you want to keep it.')) return;
+  const show = await (await fetch(`/api/templates?id=${encodeURIComponent(id)}`)).json();
+  dispatch({ type: 'show:replace', show });
+});
+refreshTemplates();
+
 let importKind = 'json';
 $('#importJsonBtn').addEventListener('click', () => { importKind = 'json'; $('#fileInput').click(); });
 $('#importCsvBtn').addEventListener('click', () => { importKind = 'csv'; $('#fileInput').click(); });

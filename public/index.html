@@ -133,6 +133,10 @@
           <div class="field"><label for="setStandby">Standby warning (seconds)</label><input id="setStandby" type="number" min="0" step="1" /></div>
           <label class="toggle"><input type="checkbox" id="setChase" /> Chase cues when timecode jumps</label>
           <div class="field"><label for="setOsc">OSC output target <small>(host:port, e.g. QLab 127.0.0.1:53000)</small></label><input id="setOsc" placeholder="127.0.0.1:53000" /></div>
+          <div class="field inline" id="templateRow" hidden>
+            <select id="templateSel"></select>
+            <button id="templateBtn">Load</button>
+          </div>
           <div class="row wrap">
             <button id="exportJsonBtn">Export show</button>
             <button id="importJsonBtn">Import show</button>

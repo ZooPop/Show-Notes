@@ -20,15 +20,40 @@ const DATA_FILE = process.env.SHOW_FILE || path.join(__dirname, 'data', 'show.js
 const PUBLIC = path.join(__dirname, 'public');
 
 // ---- state ---------------------------------------------------------------
+const TEMPLATE_DIRS = [path.join(__dirname, 'data', 'private'), path.join(__dirname, 'data')];
 let state = createState(loadShow());
 let saveTimer = null;
+
+// Show templates: data/*.json (shared, committed) and data/private/*.json (local only, git-ignored).
+
+function listTemplates() {
+  const out = [];
+  for (const dir of TEMPLATE_DIRS) {
+    let files = [];
+    try { files = fs.readdirSync(dir).filter((f) => f.endsWith('.json') && !f.startsWith('show.json')).sort(); } catch { continue; }
+    for (const f of files) {
+      try {
+        const show = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+        out.push({ id: `${path.basename(dir) === 'private' ? 'private/' : ''}${f}`, name: show.name || f, cues: (show.cues || []).length });
+      } catch { /* skip unreadable files */ }
+    }
+  }
+  return out;
+}
+
+function readTemplate(id) {
+  const t = listTemplates().find((x) => x.id === id);
+  if (!t) return null;
+  return JSON.parse(fs.readFileSync(path.join(__dirname, 'data', t.id), 'utf8'));
+}
 
 function loadShow() {
   try {
     return normalizeShow(JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')));
   } catch {
-    const example = path.join(__dirname, 'data', 'example-show.json');
-    try { return normalizeShow(JSON.parse(fs.readFileSync(example, 'utf8'))); } catch { return normalizeShow({}); }
+    // First run: start from a private show if there is one, else the example.
+    const first = listTemplates()[0];
+    try { return normalizeShow(first ? readTemplate(first.id) : {}); } catch { return normalizeShow({}); }
   }
 }
 
@@ -77,6 +102,12 @@ function handler(req, res) {
   if (url.pathname === '/api/show' && req.method === 'GET') {
     res.writeHead(200, { 'content-type': 'application/json' });
     return res.end(JSON.stringify(state.show, null, 2));
+  }
+  if (url.pathname === '/api/templates' && req.method === 'GET') {
+    const id = url.searchParams.get('id');
+    const body = id ? readTemplate(id) : listTemplates();
+    res.writeHead(body ? 200 : 404, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify(body));
   }
   if (url.pathname === '/api/state' && req.method === 'GET') {
     res.writeHead(200, { 'content-type': 'application/json' });
