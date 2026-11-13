@@ -290,3 +290,8 @@ body.video-in .side .go { flex: 0 0 auto; min-height: 110px; }
 .brand-stack.on .vswitch-text { color: #fff; }
 .brand-stack.on .vswitch::after { transform: translateX(52px); }
 .brand-stack { gap: 3px; padding: 3px 9px 4px; }
+/* Center VIDEO in the free part of the pill (beside the knob) */
+.vswitch { justify-content: center; padding: 0 3px 0 18px; }
+.brand-stack.on .vswitch { justify-content: center; padding: 0 18px 0 3px; }
+.vswitch-text { padding-left: .18em; } /* balances the letter-spacing after the last letter */
+.vswitch-text { transform: translateY(2px); } /* caps sit high in their line box; drop to true optical center */
