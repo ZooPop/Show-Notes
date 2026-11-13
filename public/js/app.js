@@ -729,6 +729,8 @@ function startFeed() {
 }
 
 if (VIDEO_IN) {
+  // Video In: GO / BACK / RESET sits at the top of the right-hand column, above Program feed.
+  $(".side").prepend($(".transport"));
   let lastFeedUrl = null;
   // Keep the shared address field in sync, and reconnect when someone changes it.
   setInterval(() => {

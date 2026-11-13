@@ -248,12 +248,11 @@ body.video-in .pgm { display: block !important; aspect-ratio: 16 / 9; align-self
 .pgm-empty b { font-size: 22px; color: #c8ced6; letter-spacing: .08em; }
 
 /* Operate: video left, timecode / CURRENT / NEXT stacked in the middle, GO on the right */
-body.video-in .band { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 210px; grid-template-rows: auto auto auto; }
+body.video-in .band { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); grid-template-rows: auto auto auto; }
 body.video-in .pgm { grid-column: 1; grid-row: 1 / span 3; }
 body.video-in .clock { grid-column: 2; grid-row: 1; flex-direction: row; align-items: baseline; gap: 12px; padding: 8px 16px; }
 body.video-in .cuebox.current { grid-column: 2; grid-row: 2; }
 body.video-in .cuebox.next { grid-column: 2; grid-row: 3; }
-body.video-in .transport { grid-column: 3; grid-row: 1 / span 3; }
 
 /* Display (layout B): video left, timecode / CURRENT / NEXT stacked on the right */
 body.video-in.view-display .band { grid-template-columns: 62fr 38fr; grid-template-rows: auto 1fr 1fr; }
@@ -276,5 +275,5 @@ body.video-in.view-display .pgm-empty b { font-size: 2vw; }
   body.video-in .pgm { grid-column: 1 / -1; grid-row: auto; }
   body.video-in .clock, body.video-in .cuebox.current, body.video-in .cuebox.next, body.video-in .transport { grid-column: auto; grid-row: auto; }
 }
-body.video-in .transport { justify-content: flex-start; }
-body.video-in .go { flex: 0 0 auto; min-height: 140px; }
+body.video-in .side .transport { justify-content: flex-start; }
+body.video-in .side .go { flex: 0 0 auto; min-height: 110px; }
