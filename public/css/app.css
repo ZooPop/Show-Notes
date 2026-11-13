@@ -189,3 +189,7 @@ body.view-display .notes-full { flex: none; overflow: visible; font-size: calc(v
 .band { grid-template-columns: minmax(240px, .8fr) 1.3fr 1.3fr 210px; }
 .tcbig { font-size: clamp(22px, 2vw, 34px); }
 td.notes { white-space: pre-line; }
+
+/* LEADS in the NEXT box: yellow to match NEXT (red stays reserved for CURRENT). */
+#nextLeads { color: #ffe9a8; }
+#nextLeads .leads-label { background: var(--standby); color: #1a1400; }

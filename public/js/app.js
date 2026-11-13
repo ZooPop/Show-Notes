@@ -145,6 +145,8 @@ function renderBand() {
   const next = nextCue(state);
   $('#nextNum').textContent = next ? next.number : '—';
   $('#nextName').textContent = next ? next.name : 'End of cue list';
+  $('#nextLeads').hidden = !next?.leads;
+  $('#nextLeadsText').textContent = next?.leads || '';
   $('#nextNotes').textContent = next ? next.notes || '' : '';
   fitDisplayBoxes();
   const cd = countdown(state);
