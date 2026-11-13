@@ -40,6 +40,8 @@ It installs its one dependency the first time, starts the server and opens http:
 
 **Test LTC without Dante:** Edit → Show settings → *LTC test generator* → Start. Then set the timecode source to **LTC**, choose an input that hears that output (a loopback device such as BlackHole on macOS or VB-Cable on Windows), and press Connect source.
 
+**Test LTC from Ableton (or any DAW) on the same machine:** make an LTC file with `node tools/make-ltc-wav.js --start 00:59:50:00 --fps 30 --minutes 5`. Put it on an audio track with **Warp off**, and send Ableton's output to a loopback device (VB-Cable on Windows, BlackHole on macOS). In Show Notes, choose Source **LTC audio** with input **CABLE Output** / **BlackHole**, then Connect source.
+
 ## Quick start (command line)
 
 ```bash
