@@ -1,3 +1,5 @@
 node_modules/
 data/show.json
 data/show.json.tmp
+# The repo root ignores lib/; Show Notes needs its lib folder.
+!lib/
