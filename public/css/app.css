@@ -196,3 +196,22 @@ td.notes { white-space: pre-line; }
 
 /* Notes in the CURRENT box: light text that reads well on red. */
 #curNotes { color: #ffe3e0; }
+
+/* ---- TIME LEFT ---- */
+.cuebox .label { width: 100%; }
+.timeleft { margin-left: auto; display: inline-flex; align-items: center; gap: .55em; border: 2px solid; border-radius: 8px; padding: 2px 12px; line-height: 1.1; }
+.timeleft .tl-label { font-size: .8em; font-weight: 800; letter-spacing: .12em; }
+.timeleft .tl-val { font-family: var(--mono); font-weight: 800; font-size: 30px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.cuebox.current .timeleft { background: #7a1010; border-color: #ff6b62; color: #fff; }
+.cuebox.next .timeleft { background: var(--standby); border-color: var(--standby); color: #1a1400; }
+.cuebox .timeleft.warn { background: #f2994a; border-color: #ffc38a; color: #1a0d00; }
+.cuebox .timeleft.zero { background: #ff3b30; border-color: #fff; color: #fff; animation: tl-zero .8s steps(2) infinite; }
+@keyframes tl-zero { 50% { opacity: .35; } }
+td.tleft { font-family: var(--mono); white-space: nowrap; color: var(--dim); }
+tr.current td.tleft { color: #fff; font-weight: 800; font-size: 15px; }
+body.view-display .timeleft { border-width: 3px; border-radius: 1vw; padding: .2vw 1vw; }
+body.view-display .timeleft .tl-label { font-size: calc(var(--fit, 1) * 1.6vw); }
+body.view-display .timeleft .tl-val { font-size: calc(var(--fit, 1) * 6vw); }
+.timeleft[hidden] { display: none; }
+th { white-space: nowrap; }
+body.view-display .timeleft .tl-val { font-size: calc(var(--fit, 1) * 5vw); }

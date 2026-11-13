@@ -78,7 +78,7 @@ function dispatch(action, origin = 'server') {
     scheduleSave();
     broadcast({ type: 'show', show: state.show });
   }
-  if (state.runtime !== prev.runtime) broadcast({ type: 'runtime', runtime: state.runtime });
+  if (state.runtime !== prev.runtime) broadcast({ type: 'runtime', runtime: state.runtime, now: Date.now() });
   if (state.log !== prev.log && state.log.length === 0) broadcast({ type: 'log', log: [] });
   for (const ev of result.events) {
     if (ev.entry) broadcast({ type: 'event', event: { type: ev.type, entry: ev.entry } });
@@ -111,7 +111,7 @@ function handler(req, res) {
   }
   if (url.pathname === '/api/state' && req.method === 'GET') {
     res.writeHead(200, { 'content-type': 'application/json' });
-    return res.end(JSON.stringify({ runtime: state.runtime, log: state.log }));
+    return res.end(JSON.stringify({ runtime: state.runtime, log: state.log, now: Date.now() }));
   }
   if (url.pathname === '/api/action' && req.method === 'POST') {
     let body = '';

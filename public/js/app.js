@@ -1,8 +1,8 @@
 // Show Notes — browser app.
 // Connects to the server over WebSocket (shared state across devices). If no server
 // is reachable it runs the same engine locally and saves to localStorage.
-import { apply, createState, normalizeShow, currentCue, nextCue, countdown, cueIndex, DEPARTMENTS } from './engine.js';
-import { RATES, rateById, parseTC, formatTC, formatDuration, tcSeconds } from './timecode.js';
+import { apply, createState, normalizeShow, currentCue, nextCue, countdown, cueIndex, timeLeft, DEPARTMENTS } from './engine.js';
+import { RATES, rateById, parseTC, formatTC, formatDuration, tcSeconds, parseLength, formatClock } from './timecode.js';
 import {
   SOURCE_TYPES, InternalClock, LTCSource, MTCSource, LTCGenerator,
   listAudioInputs, listAudioOutputs, getMIDIAccess, secureContextNote,
@@ -24,7 +24,9 @@ const store = {
   myId: null,
   clients: [],
   lastTcAt: 0,
+  serverOffset: 0, // server clock minus this browser's clock
 };
+const serverNow = () => Date.now() + store.serverOffset;
 
 function loadLocalShow() {
   try { return normalizeShow(JSON.parse(localStorage.getItem(LS_SHOW))); } catch { return normalizeShow({}); }
@@ -66,6 +68,7 @@ function connect() {
 
 function onServerMessage(msg) {
   const prev = store.state;
+  if (msg.now) store.serverOffset = msg.now - Date.now();
   switch (msg.type) {
     case 'hello':
       store.myId = msg.id;
@@ -143,6 +146,14 @@ function renderBand() {
   $('#curLeadsText').textContent = cur?.leads || '';
 
   const next = nextCue(state);
+  // TIME LEFT: CURRENT counts down live; NEXT shows its full length, ready to go.
+  const left = cur ? timeLeft(state, serverNow()) : null;
+  showTime('#curTime', left);
+  const curCell = document.querySelector('tr.current td.tleft');
+  if (curCell && left != null) curCell.textContent = formatClock(left);
+  const nextLen = next ? parseLength(next.time) : null;
+  showTime('#nextTime', Number.isNaN(nextLen) ? null : nextLen);
+
   $('#nextNum').textContent = next ? next.number : '—';
   $('#nextName').textContent = next ? next.name : 'End of cue list';
   $('#nextLeads').hidden = !next?.leads;
@@ -163,11 +174,20 @@ function renderBand() {
   $('#autoFireChk').checked = !!show.settings.autoFire;
 }
 
+function showTime(sel, seconds) {
+  const el = $(sel);
+  el.hidden = seconds == null;
+  if (seconds == null) return;
+  $(sel + 'Val').textContent = formatClock(seconds);
+  el.classList.toggle('warn', seconds <= 30 && seconds > 0);
+  el.classList.toggle('zero', seconds <= 0);
+}
+
 // Display view: scale each CURRENT / NEXT box's text down until everything in it fits.
 let fitKey = '';
 function fitDisplayBoxes() {
   const boxes = $$('.cuebox');
-  const key = boxes.map((b) => b.textContent).join('|') + `|${document.body.className}|${innerWidth}x${innerHeight}`;
+  const key = boxes.map((b) => [...b.children].filter((c) => !c.classList.contains('label')).map((c) => c.textContent).join('|') + (b.querySelector('.timeleft').hidden ? '' : 'T')).join('|') + `|${document.body.className}|${innerWidth}x${innerHeight}`;
   if (key === fitKey) return;
   fitKey = key;
   for (const box of boxes) {
@@ -200,6 +220,7 @@ function renderTable() {
         <td class="leads-cell">${esc(c.leads)}</td>
         <td><span class="dept dept-${esc(c.dept)}">${esc(c.dept)}</span></td>
         <td class="trig">${esc(c.tc) || '<span title="Manual GO">—</span>'}</td>
+        <td class="tleft">${esc(c.time)}</td>
         <td>${c.tc ? (c.auto === false ? '✗' : '✓') : ''}</td>
         <td class="notes">${esc(c.notes)}</td>
         <td class="actions">
@@ -323,7 +344,7 @@ function openCueDialog(id, defaults = {}) {
   editingId = id;
   const cue = id ? store.state.show.cues.find((c) => c.id === id) : { number: suggestNumber(), name: '', dept: 'SM', tc: '', auto: true, leads: '', notes: '', osc: '', ...defaults };
   $('#cueDialogTitle').textContent = id ? `Edit cue ${cue.number}` : 'New cue';
-  for (const k of ['number', 'name', 'leads', 'dept', 'tc', 'notes', 'osc']) form[k].value = cue[k] ?? '';
+  for (const k of ['number', 'name', 'leads', 'dept', 'tc', 'time', 'notes', 'osc']) form[k].value = cue[k] ?? '';
   form.auto.checked = cue.auto !== false;
   $('#cueFormErr').hidden = true;
   dlg.showModal();
@@ -338,6 +359,7 @@ form.addEventListener('submit', (e) => {
     leads: form.leads.value.trim(),
     dept: form.dept.value,
     tc: form.tc.value.trim(),
+    time: form.time.value.trim(),
     auto: form.auto.checked,
     notes: form.notes.value.trim(),
     osc: form.osc.value.trim(),
@@ -351,6 +373,16 @@ form.addEventListener('submit', (e) => {
       return;
     }
     data.tc = formatTC(tc, rateById(store.state.show.rate).drop);
+  }
+  if (data.time) {
+    const secs = parseLength(data.time);
+    if (Number.isNaN(secs)) {
+      e.preventDefault();
+      $('#cueFormErr').textContent = 'Time left must look like m:ss, e.g. 4:30 (max 10:00).';
+      $('#cueFormErr').hidden = false;
+      return;
+    }
+    data.time = formatClock(secs); // capped at 10:00
   }
   if (editingId) dispatch({ type: 'cue:update', id: editingId, patch: data });
   else dispatch({ type: 'cue:add', cue: data, afterId: selectedId || undefined });
@@ -375,7 +407,7 @@ $('#setChase').addEventListener('change', (e) => dispatch({ type: 'settings:upda
 $('#setOsc').addEventListener('change', (e) => dispatch({ type: 'settings:update', patch: { oscTarget: e.target.value.trim() } }));
 
 // ---- import / export -----------------------------------------------------
-const CSV_COLS = ['number', 'name', 'leads', 'dept', 'tc', 'auto', 'notes', 'osc'];
+const CSV_COLS = ['number', 'name', 'leads', 'dept', 'tc', 'time', 'auto', 'notes', 'osc'];
 
 function download(name, text, type) {
   const a = document.createElement('a');
@@ -457,6 +489,7 @@ $('#fileInput').addEventListener('change', async (e) => {
         name: get(r, 'name'),
         dept: (get(r, 'dept') || 'SM').toUpperCase(),
         tc: get(r, 'tc') || get(r, 'timecode'),
+        time: get(r, 'time') || get(r, 'time left'),
         auto: !/^(no|false|0|n)$/i.test(get(r, 'auto')),
         leads: get(r, 'leads'),
         notes: get(r, 'notes'),

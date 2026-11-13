@@ -103,3 +103,24 @@ export function formatDuration(seconds) {
   const body = h ? `${h}:${pad(m)}:${pad(Math.floor(s))}` : `${m}:${pad(Math.floor(s))}.${Math.floor((s % 1) * 10)}`;
   return (neg ? '-' : '') + body;
 }
+
+// ---- Cue length / TIME LEFT --------------------------------------------------
+export const MAX_TIME_LEFT = 600; // 10 minutes
+
+/** Parse a cue length: "4:30" (m:ss) or "4" (minutes). Capped at 10:00. null = blank, NaN = invalid. */
+export function parseLength(str) {
+  const t = String(str ?? '').trim();
+  if (!t) return null;
+  let secs;
+  const m = t.match(/^(\d{1,2}):([0-5]\d)$/);
+  if (m) secs = +m[1] * 60 + +m[2];
+  else if (/^\d+(\.\d+)?$/.test(t)) secs = Math.round(parseFloat(t) * 60);
+  else return NaN;
+  return Math.min(secs, MAX_TIME_LEFT);
+}
+
+/** Seconds -> "m:ss" (rounded up, never negative). */
+export function formatClock(seconds) {
+  const s = Math.max(0, Math.ceil(seconds - 1e-6));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}

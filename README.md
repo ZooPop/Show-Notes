@@ -91,6 +91,7 @@ There's also an **LTC test generator** under Edit → Show settings. It plays LT
 * A timecode **jump** (backwards, or forward by more than 2 s) is a *locate*. With *Chase* on, Show Notes moves to the last timed cue at or before the new position without firing anything.
 * A cue the operator has already passed is never fired again by timecode.
 * Next cue turns **STANDBY** (flashing) within the standby window (10 s by default).
+* **TIME LEFT:** give a cue a length (m:ss, max 10:00) and CURRENT counts it down in a large badge. It turns orange in the last 30 s and flashes at 0:00. NEXT shows its full length. Timed cues count from their timecode, so the countdown pauses when playback pauses; manual cues count from when they were fired.
 * Every GO, chase, back and reset is written to the **show log** with wall-clock time, timecode and source. Export it as CSV for show reports.
 
 ## OSC
@@ -133,7 +134,7 @@ If no server is reachable (for example, the page was opened from static hosting)
 
 **Show templates:** any show JSON in `data/` (committed) or `data/private/` (git-ignored, for shows with real names) appears under Edit → Show settings → *Load*. On first run, the server starts with the first private show if there is one, otherwise the example show.
 
-CSV import/export columns are `number,name,leads,dept,tc,auto,notes,osc`.
+CSV import/export columns are `number,name,leads,dept,tc,time,auto,notes,osc`.
 
 ## Environment variables
 

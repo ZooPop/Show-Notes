@@ -3,7 +3,7 @@
 // state = { show, runtime, log }. Unchanged branches keep their object identity
 // so callers can cheaply detect what changed.
 
-import { parseTC, formatTC, tcSeconds, rateById } from './timecode.js';
+import { parseTC, formatTC, tcSeconds, rateById, parseLength } from './timecode.js';
 
 export const DEPARTMENTS = ['SM', 'SONG', 'MIC', 'LX', 'SND', 'VID', 'FLY', 'SFX', 'PYRO', 'AUTO', 'OTHER'];
 const LOG_LIMIT = 500;
@@ -36,6 +36,7 @@ export function createCue(fields = {}) {
     tc: '', // trigger timecode label, empty = manual (GO) cue
     dept: 'SM',
     leads: '', // who is leading (singers / speakers)
+    time: '', // length for the TIME LEFT countdown, m:ss (max 10:00)
     notes: '',
     auto: true, // allow timecode to fire this cue
     osc: '', // optional OSC message sent when the cue fires, e.g. "/cue/12/start"
@@ -44,7 +45,7 @@ export function createCue(fields = {}) {
 }
 
 export function createRuntime() {
-  return { currentCueId: null, lastGo: null, tc: null };
+  return { currentCueId: null, currentAt: null, lastGo: null, tc: null };
 }
 
 export function createState(show = createShow()) {
@@ -209,7 +210,7 @@ function fire(state, cue, source, at, events) {
   events.push({ type: 'fired', cue, entry });
   return {
     ...state,
-    runtime: { ...state.runtime, currentCueId: cue.id, lastGo: { cueId: cue.id, at, source } },
+    runtime: { ...state.runtime, currentCueId: cue.id, currentAt: at, lastGo: { cueId: cue.id, at, source } },
     log: pushLog(state, entry),
   };
 }
@@ -219,7 +220,7 @@ function move(state, cue, kind, at, events) {
   events.push({ type: 'moved', cue, entry });
   return {
     ...state,
-    runtime: { ...state.runtime, currentCueId: cue ? cue.id : null },
+    runtime: { ...state.runtime, currentCueId: cue ? cue.id : null, currentAt: at },
     log: pushLog(state, entry),
   };
 }
@@ -254,7 +255,7 @@ function onTimecode(state, tcIn, at, events) {
     if (delta == null && !target) return next;
     const entry = logEntry(next, target, 'chase', tc.source, at);
     events.push({ type: 'chased', cue: target, entry });
-    return { ...next, runtime: { ...next.runtime, currentCueId: targetId }, log: pushLog(next, entry) };
+    return { ...next, runtime: { ...next.runtime, currentCueId: targetId, currentAt: at }, log: pushLog(next, entry) };
   }
 
   if (!s.autoFire) return next;
@@ -276,4 +277,29 @@ export function normalizeShow(input) {
   show.settings = { ...base.settings, ...(input?.settings || {}) };
   show.cues = Array.isArray(input?.cues) ? input.cues.map((c) => createCue({ ...c, id: c.id || uid() })) : [];
   return show;
+}
+
+/**
+ * Seconds elapsed in the current cue. A timed cue follows timecode (so it pauses when
+ * playback pauses) while the timecode sits within an hour after the cue's trigger;
+ * otherwise it counts wall-clock time since the cue became current.
+ */
+export function cueElapsed(state, nowMs = Date.now()) {
+  const cur = currentCue(state);
+  if (!cur) return null;
+  const start = cueSeconds(state.show, cur);
+  const tc = state.runtime.tc;
+  if (start != null && tc) {
+    const d = tcSeconds(tc) - start;
+    if (d >= 0 && d <= 3600) return d;
+  }
+  if (state.runtime.currentAt == null) return 0;
+  return Math.max(0, (nowMs - state.runtime.currentAt) / 1000);
+}
+
+/** TIME LEFT for the current cue in seconds, or null if it has no length set. */
+export function timeLeft(state, nowMs = Date.now()) {
+  const len = parseLength(currentCue(state)?.time);
+  if (len == null || Number.isNaN(len)) return null;
+  return Math.max(0, len - cueElapsed(state, nowMs));
 }
