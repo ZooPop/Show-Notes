@@ -19,7 +19,28 @@ Web-based cue calling and tracking driven by **SMPTE timecode**. Show Notes alwa
                           SM desk (Operate)   iPad (Display)     Operators (Operate)
 ```
 
-## Quick start
+## Test it on your computer
+
+1. Install **Node.js 18 or newer** (LTS) from https://nodejs.org.
+2. Unzip `show-notes.zip` (or clone this repo and open the `show-notes` folder).
+3. Double-click the launcher for your system:
+   * macOS: `start-mac.command` (first time: right-click → Open, because it is an unsigned script)
+   * Windows: `start-windows.bat`
+   * Linux: `./start-linux.sh`
+
+It installs its one dependency the first time, starts the server and opens http://localhost:3000 with an example show loaded. To stop it, close the terminal window.
+
+**A 2-minute test with no hardware:**
+
+1. Open http://localhost:3000. Under *Timecode source*, pick **Internal clock**, type `00:59:55:00` in the Locate box, then press **Connect source** and **▶ Run**.
+2. Watch cues 1, 2 and 3 fire on their own at 01:00:00, :05 and :10. STANDBY flashes 10 s before each one.
+3. Open http://localhost:3000/?view=display in a second window, or on a phone/tablet using the LAN address the terminal prints. It follows along.
+4. Type `01:00:22:00` and press **Locate**. Show Notes chases to cue 4 without firing it.
+5. Press **Space** for GO and **Backspace** for Back.
+
+**Test LTC without Dante:** Edit → Show settings → *LTC test generator* → Start. Then set the timecode source to **LTC**, choose an input that hears that output (a loopback device such as BlackHole on macOS or VB-Cable on Windows), and press Connect source.
+
+## Quick start (command line)
 
 ```bash
 cd show-notes
