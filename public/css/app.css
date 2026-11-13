@@ -193,3 +193,6 @@ td.notes { white-space: pre-line; }
 /* LEADS in the NEXT box: yellow to match NEXT (red stays reserved for CURRENT). */
 #nextLeads { color: #ffe9a8; }
 #nextLeads .leads-label { background: var(--standby); color: #1a1400; }
+
+/* Notes in the CURRENT box: light text that reads well on red. */
+#curNotes { color: #ffe3e0; }

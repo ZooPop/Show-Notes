@@ -138,7 +138,7 @@ function renderBand() {
   const cur = currentCue(state);
   $('#curNum').textContent = cur ? cur.number : '—';
   $('#curName').textContent = cur ? cur.name : 'Ready — top of show';
-  $('#curMeta').textContent = cur ? [cur.dept, cur.tc].filter(Boolean).join(' · ') : '';
+  $('#curNotes').textContent = cur ? cur.notes || '' : '';
   $('#curLeads').hidden = !cur?.leads;
   $('#curLeadsText').textContent = cur?.leads || '';
 
