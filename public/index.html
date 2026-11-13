@@ -12,12 +12,13 @@
     <div class="brand">
       <img id="brandLogo" class="brand-logo" src="api/logo" alt="" hidden />
       <span class="brand-div" id="brandDiv" hidden></span>
-      <span class="brand-title">Show Notes</span>
+      <span class="brand-stack"><span class="brand-title">Show Notes</span><span class="brand-sub">Video In</span></span>
     </div>
     <div class="show-name" id="showName" title="Show name">Untitled Show</div>
     <div class="pills">
       <span class="pill" id="connPill" title="Server connection">Offline</span>
       <span class="pill" id="tcPill" title="Timecode source">No timecode</span>
+      <span class="pill video-only" id="pgmPill" title="Program feed">No feed</span>
     </div>
     <button class="esc-hint" id="escHint" title="Back to the Operate view">Hit <kbd>Esc</kbd> to exit</button>
     <nav class="views">
@@ -30,6 +31,11 @@
   <main>
     <!-- Status band: timecode, current and next cue, GO -->
     <section class="band">
+      <div class="pgm video-only" id="pgm">
+        <video id="pgmVideo" muted autoplay playsinline></video>
+        <span class="pgm-tag">● Program</span>
+        <div class="pgm-empty" id="pgmEmpty"><b>No program feed</b><span id="pgmHint">Set it up under Program feed in the Operate view.</span></div>
+      </div>
       <div class="clock">
         <div class="tcbig" id="tcDisplay">--:--:--:--</div>
         <div class="tc-meta"><span id="tcRate">—</span> · <span id="tcSource">no source</span></div>
@@ -82,6 +88,28 @@
 
       <!-- Side panels -->
       <aside class="side">
+        <section class="panel video-only">
+          <div class="panel-head"><h2>Program feed</h2></div>
+          <div class="field">
+            <label for="feedSource">Source on this screen</label>
+            <select id="feedSource">
+              <option value="off">Off</option>
+              <option value="network">Network stream (any screen)</option>
+              <option value="local">Capture device on this computer</option>
+            </select>
+          </div>
+          <div class="feed-opts" data-feed="network">
+            <div class="field"><label for="feedUrl">Stream address <small>(shared by every screen)</small></label><input id="feedUrl" placeholder="192.168.1.50:8889/program" /></div>
+          </div>
+          <div class="feed-opts" data-feed="local" hidden>
+            <div class="field"><label for="feedDevice">Capture device <small>(DeckLink / OBS Virtual Camera / NDI Webcam)</small></label><select id="feedDevice"><option value="">Default camera</option></select></div>
+          </div>
+          <div class="row">
+            <button id="feedStart" class="primary">Connect</button>
+            <button id="feedStop">Disconnect</button>
+          </div>
+          <p class="status" id="feedStatus">Program feed off.</p>
+        </section>
         <section class="panel">
           <div class="panel-head"><h2>Timecode source</h2></div>
           <div class="field">

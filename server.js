@@ -138,6 +138,8 @@ function handler(req, res) {
     });
     return;
   }
+  if (url.pathname === '/video/') { res.writeHead(301, { location: '/video' + url.search }); return res.end(); }
+  if (url.pathname === '/video') url.pathname = '/index.html'; // Show Notes · Video In
   let file = path.normalize(path.join(PUBLIC, decodeURIComponent(url.pathname)));
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
   if (url.pathname.endsWith('/')) file = path.join(file, 'index.html');

@@ -13,7 +13,10 @@ const $$ = (sel) => [...document.querySelectorAll(sel)];
 const LS_SHOW = 'shownotes.show';
 const LS_PREFS = 'shownotes.prefs';
 
-const prefs = { name: '', source: 'none', ltcDevice: '', ltcChannel: 0, mtcInput: '', ...JSON.parse(localStorage.getItem(LS_PREFS) || '{}') };
+const prefs = { name: '', source: 'none', ltcDevice: '', ltcChannel: 0, mtcInput: '', feedSource: '', feedDevice: '', ...JSON.parse(localStorage.getItem(LS_PREFS) || '{}') };
+// Show Notes · Video In lives at /video: same app, plus the program feed (layout B).
+const VIDEO_IN = /^\/video\/?$/.test(location.pathname);
+if (VIDEO_IN) { document.body.classList.add('video-in'); document.title = 'Show Notes · Video In'; }
 const savePrefs = () => localStorage.setItem(LS_PREFS, JSON.stringify(prefs));
 
 // ---- store ---------------------------------------------------------------
@@ -264,7 +267,7 @@ function renderLog() {
 function renderSettings() {
   const { show } = store.state;
   $('#showName').textContent = show.name;
-  document.title = `${show.name} · Show Notes`;
+  document.title = `${show.name} · Show Notes${VIDEO_IN ? ' · Video In' : ''}`;
   const set = (sel, v) => { const el = $(sel); if (document.activeElement !== el) el.value = v; };
   set('#setName', show.name);
   set('#setRate', show.rate);
@@ -685,3 +688,71 @@ window.showNotes = { store, dispatch, tcSeconds };
 }
 // Display view: tappable "Hit Esc to exit" for touch screens.
 $('#escHint').addEventListener('click', () => setView('operate'));
+
+// ---- Video In: program feed -------------------------------------------------
+import { ProgramFeed, listVideoInputs, normalizeFeedUrl } from './feed.js';
+
+const feed = new ProgramFeed($('#pgmVideo'), (state, text) => {
+  $('#feedStatus').textContent = text;
+  $('#pgmEmpty').hidden = state === 'live';
+  $('#pgmHint').textContent = state === 'off' ? 'Set it up under Program feed in the Operate view.' : text;
+  const pill = $('#pgmPill');
+  pill.textContent = { live: 'PGM LIVE', connecting: 'PGM…', error: 'PGM ERROR', off: 'No feed' }[state] || state;
+  pill.className = 'pill video-only ' + ({ live: 'ok', connecting: 'warn', error: 'bad' }[state] || '');
+});
+
+function feedMode() {
+  // New screens follow the shared stream automatically once an address is set.
+  return prefs.feedSource || (store.state.show.settings.feedUrl ? 'network' : 'off');
+}
+
+function showFeedOptions() {
+  const mode = $('#feedSource').value;
+  $$('.feed-opts').forEach((el) => (el.hidden = el.dataset.feed !== mode));
+  if (mode === 'local') refreshVideoDevices();
+}
+
+async function refreshVideoDevices() {
+  const devices = await listVideoInputs().catch(() => []);
+  const sel = $('#feedDevice');
+  sel.innerHTML = '<option value="">Default camera</option>' +
+    devices.map((d) => `<option value="${d.deviceId}">${esc(d.label || 'Camera ' + d.deviceId.slice(0, 6))}</option>`).join('');
+  const preferred = devices.find((d) => /decklink|blackmagic|obs virtual|ndi/i.test(d.label));
+  sel.value = devices.some((d) => d.deviceId === prefs.feedDevice) ? prefs.feedDevice : preferred ? preferred.deviceId : '';
+}
+
+function startFeed() {
+  const mode = feedMode();
+  if (mode === 'local') feed.start('local', prefs.feedDevice);
+  else if (mode === 'network') feed.start('network', store.state.show.settings.feedUrl);
+  else feed.stop();
+}
+
+if (VIDEO_IN) {
+  let lastFeedUrl = null;
+  // Keep the shared address field in sync, and reconnect when someone changes it.
+  setInterval(() => {
+    const url = store.state.show.settings.feedUrl || '';
+    if (document.activeElement !== $('#feedUrl')) $('#feedUrl').value = url;
+    if (lastFeedUrl === null) { lastFeedUrl = url; $('#feedSource').value = feedMode(); showFeedOptions(); startFeed(); return; }
+    if (url !== lastFeedUrl) { lastFeedUrl = url; if (feedMode() === 'network') startFeed(); }
+  }, 500);
+
+  $('#feedSource').addEventListener('change', showFeedOptions);
+  $('#feedStart').addEventListener('click', async () => {
+    prefs.feedSource = $('#feedSource').value;
+    if (prefs.feedSource === 'local') prefs.feedDevice = $('#feedDevice').value;
+    if (prefs.feedSource === 'network') {
+      const url = $('#feedUrl').value.trim();
+      if (url !== (store.state.show.settings.feedUrl || '')) dispatch({ type: 'settings:update', patch: { feedUrl: url } });
+      $('#feedStatus').textContent = url ? `Connecting to ${normalizeFeedUrl(url)}…` : 'Enter the stream address first.';
+      savePrefs();
+      if (url) feed.start('network', url);
+      return;
+    }
+    savePrefs();
+    startFeed();
+    if (prefs.feedSource === 'local') setTimeout(refreshVideoDevices, 1500); // names appear after permission
+  });
+  $('#feedStop').addEventListener('click', () => { prefs.feedSource = 'off'; savePrefs(); $('#feedSource').value = 'off'; showFeedOptions(); feed.stop(); });
+}

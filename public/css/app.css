@@ -229,3 +229,52 @@ body.view-display .esc-hint {
 }
 body.view-display .esc-hint:hover { border-color: #8a94a3; color: #fff; }
 .esc-hint kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border: 1px solid #5a6472; border-bottom-width: 2px; border-radius: 4px; background: #0f1216; color: #fff; }
+
+/* ==== Show Notes · Video In (served at /video) ==== */
+.video-only, .brand-sub { display: none !important; }
+body.video-in .video-only { display: revert !important; }
+body.video-in .pill.video-only { display: inline-block !important; }
+body.video-in .feed-opts[hidden], body.video-in .pgm-empty[hidden] { display: none !important; }
+.brand-stack { display: flex; flex-direction: column; line-height: 1.05; }
+body.video-in .brand-sub { display: inline-flex !important; align-items: center; gap: 5px; font-size: 10px; font-weight: 800; letter-spacing: .2em; color: #ff8a82; }
+body.video-in .brand-sub::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--live); }
+
+.pgm { position: relative; background: #000; border: 2px solid var(--live); border-radius: 10px; overflow: hidden; min-height: 0; }
+body.video-in .pgm { display: block !important; aspect-ratio: 16 / 9; align-self: start; width: 100%; }
+.pgm video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+.pgm-tag { position: absolute; top: 10px; left: 12px; z-index: 2; background: var(--live); color: #fff; font-weight: 800; letter-spacing: .1em; font-size: 13px; padding: 3px 10px; border-radius: 6px; }
+.pgm-empty { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #8a94a3; text-align: center; padding: 20px;
+  background: repeating-linear-gradient(135deg, #0b0d10 0 18px, #101318 18px 36px); }
+.pgm-empty b { font-size: 22px; color: #c8ced6; letter-spacing: .08em; }
+
+/* Operate: video left, timecode / CURRENT / NEXT stacked in the middle, GO on the right */
+body.video-in .band { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 210px; grid-template-rows: auto auto auto; }
+body.video-in .pgm { grid-column: 1; grid-row: 1 / span 3; }
+body.video-in .clock { grid-column: 2; grid-row: 1; flex-direction: row; align-items: baseline; gap: 12px; padding: 8px 16px; }
+body.video-in .cuebox.current { grid-column: 2; grid-row: 2; }
+body.video-in .cuebox.next { grid-column: 2; grid-row: 3; }
+body.video-in .transport { grid-column: 3; grid-row: 1 / span 3; }
+
+/* Display (layout B): video left, timecode / CURRENT / NEXT stacked on the right */
+body.video-in.view-display .band { grid-template-columns: 62fr 38fr; grid-template-rows: auto 1fr 1fr; }
+body.video-in.view-display .pgm { grid-column: 1; grid-row: 1 / span 3; align-self: center; }
+body.video-in.view-display .clock { grid-column: 2; grid-row: 1; padding: 6px 14px; }
+body.video-in.view-display .tcbig { font-size: min(2.6vw, 6vh); }
+body.video-in.view-display .cuebox.current { grid-column: 2; grid-row: 2; }
+body.video-in.view-display .cuebox.next { grid-column: 2; grid-row: 3; }
+body.video-in.view-display .cuebox .label { font-size: calc(var(--fit, 1) * 1.2vw); }
+body.video-in.view-display .cuebox .num { font-size: calc(var(--fit, 1) * min(7vw, 12vh)); }
+body.video-in.view-display .cuebox .name { font-size: calc(var(--fit, 1) * 2.6vw); }
+body.video-in.view-display .cuebox .leads { font-size: calc(var(--fit, 1) * 2.1vw); }
+body.video-in.view-display .notes-full { font-size: calc(var(--fit, 1) * 2.1vw); }
+body.video-in.view-display .timeleft .tl-label { font-size: calc(var(--fit, 1) * 1vw); }
+body.video-in.view-display .timeleft .tl-val { font-size: calc(var(--fit, 1) * 2.8vw); }
+body.video-in.view-display .pgm-empty b { font-size: 2vw; }
+
+@media (max-width: 1000px) {
+  body.video-in .band { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+  body.video-in .pgm { grid-column: 1 / -1; grid-row: auto; }
+  body.video-in .clock, body.video-in .cuebox.current, body.video-in .cuebox.next, body.video-in .transport { grid-column: auto; grid-row: auto; }
+}
+body.video-in .transport { justify-content: flex-start; }
+body.video-in .go { flex: 0 0 auto; min-height: 140px; }
