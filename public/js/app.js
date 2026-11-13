@@ -758,3 +758,12 @@ if (VIDEO_IN) {
   });
   $('#feedStop').addEventListener('click', () => { prefs.feedSource = 'off'; savePrefs(); $('#feedSource').value = 'off'; showFeedOptions(); feed.stop(); });
 }
+
+// ---- Title button: switch between Show Notes and Show Notes · Video ----------
+{
+  const btn = $('#modeToggle');
+  btn.title = VIDEO_IN ? 'Switch to Show Notes (no video)' : 'Switch to Show Notes · Video';
+  btn.addEventListener('click', () => {
+    location.href = (VIDEO_IN ? '/' : '/video') + location.search; // keeps the current tab (?view=…)
+  });
+}

@@ -231,13 +231,11 @@ body.view-display .esc-hint:hover { border-color: #8a94a3; color: #fff; }
 .esc-hint kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border: 1px solid #5a6472; border-bottom-width: 2px; border-radius: 4px; background: #0f1216; color: #fff; }
 
 /* ==== Show Notes · Video (served at /video) ==== */
-.video-only, .brand-sub { display: none !important; }
+.video-only { display: none !important; }
 body.video-in .video-only { display: revert !important; }
 body.video-in .pill.video-only { display: inline-block !important; }
 body.video-in .feed-opts[hidden], body.video-in .pgm-empty[hidden] { display: none !important; }
-.brand-stack { display: flex; flex-direction: column; line-height: 1.05; }
-body.video-in .brand-sub { display: inline-flex !important; align-items: center; gap: 5px; font-size: 10px; font-weight: 800; letter-spacing: .2em; color: #ff8a82; }
-body.video-in .brand-sub::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--live); }
+/* (brand-stack styles: see "Show Notes / Video toggle" below) */
 
 .pgm { position: relative; background: #000; border: 2px solid var(--live); border-radius: 10px; overflow: hidden; min-height: 0; }
 body.video-in .pgm { display: block !important; aspect-ratio: 16 / 9; align-self: start; width: 100%; }
@@ -278,4 +276,12 @@ body.video-in.view-display .pgm-empty b { font-size: 2vw; }
 body.video-in .side .transport { justify-content: flex-start; }
 body.video-in .side .go { flex: 0 0 auto; min-height: 110px; }
 /* Center the VIDEO subtitle under SHOW NOTES */
-body.video-in .brand-stack { align-items: center; }
+
+/* ---- Show Notes / Video toggle (the title is a button) ---- */
+.brand-stack { display: flex; flex-direction: column; align-items: center; line-height: 1.05; gap: 2px;
+  background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 3px 9px; cursor: pointer; }
+.brand-stack:hover, .brand-stack:focus-visible { background: #1d222a; border-color: #3a434f; outline: none; }
+.brand-sub { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 800; letter-spacing: .2em; color: #6b7480; }
+.brand-sub::before { content: ''; width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid currentColor; box-sizing: border-box; }
+body.video-in .brand-sub { color: #ff8a82; }
+body.video-in .brand-sub::before { background: var(--live); border-color: var(--live); }
