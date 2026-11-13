@@ -152,6 +152,11 @@ function renderBand() {
   const nextRow = next && document.querySelector(`tr[data-id="${next.id}"]`);
   $$('tr.standby').forEach((r) => r !== nextRow && r.classList.remove('standby'));
   nextRow?.classList.toggle('standby', standby);
+  // NEXT pulses gently only while timecode is actually running.
+  const running = !stale && !!next;
+  $('#nextBox').classList.toggle('running', running);
+  $$('tr.running').forEach((r) => r !== nextRow && r.classList.remove('running'));
+  nextRow?.classList.toggle('running', running);
   $('#autoFireChk').checked = !!show.settings.autoFire;
 }
 

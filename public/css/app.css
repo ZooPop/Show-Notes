@@ -8,6 +8,7 @@
   --accent: #3fb950;
   --go: #2ea043;
   --standby: #f2c94c;
+  --live: #f85149;
   --danger: #f85149;
   --current: #1f6feb;
   --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
@@ -15,6 +16,8 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+body { text-transform: uppercase; letter-spacing: .02em; }
+input, textarea { text-transform: none; letter-spacing: normal; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button {
   background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer;
@@ -28,7 +31,7 @@ h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
 /* top bar */
 .topbar { display: flex; align-items: center; gap: 16px; padding: 8px 16px; background: #0a0c0f; border-bottom: 1px solid var(--line); }
 .brand { font-weight: 800; letter-spacing: .02em; }
-.show-name { color: var(--dim); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.show-name { color: var(--dim); flex: 1; white-space: nowrap; }
 .pills { display: flex; gap: 8px; }
 .pill { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--panel2); border: 1px solid var(--line); color: var(--dim); }
 .pill.ok { color: #7ee787; border-color: #2ea04366; }
@@ -39,23 +42,26 @@ h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
 .views button.active { background: #2f3742; }
 
 /* status band */
-.band { display: grid; grid-template-columns: minmax(280px, 1.2fr) 1fr 1fr 200px; gap: 12px; padding: 12px 16px; }
+.band { display: grid; grid-template-columns: minmax(280px, 1.2fr) 1fr 1fr 220px; gap: 12px; padding: 12px 16px; }
 .clock, .cuebox, .transport { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
 .clock { display: flex; flex-direction: column; justify-content: center; }
 .tcbig { font-family: var(--mono); font-size: clamp(32px, 4.2vw, 64px); font-weight: 700; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
 .tcbig.stale { color: var(--dim); }
 .tc-meta { color: var(--dim); font-size: 12px; }
-.cuebox .label { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); display: flex; gap: 8px; align-items: center; }
-.cuebox .num { font-family: var(--mono); font-size: 34px; font-weight: 700; }
-.cuebox .name { font-size: 16px; font-weight: 600; min-height: 1.4em; }
-.cuebox .meta { color: var(--dim); font-size: 12px; min-height: 1.4em; }
-.cuebox.current { border-left: 4px solid var(--current); }
-.cuebox.next { border-left: 4px solid var(--line); }
-.cuebox.next.standby { border-left-color: var(--standby); animation: standby 1s steps(2) infinite; }
-@keyframes standby { 50% { background: #2a2512; } }
+.cuebox .label { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); display: flex; gap: 8px; align-items: center; }
+.cuebox .num { font-family: var(--mono); font-size: 46px; font-weight: 700; line-height: 1.1; }
+.cuebox .name { font-size: 22px; font-weight: 700; min-height: 1.4em; }
+.cuebox .meta { color: var(--dim); font-size: 15px; min-height: 1.4em; }
+.cuebox.current { border: 2px solid var(--live); border-left-width: 6px; background: #3a1414; }
+.cuebox.current .label { color: #ff9b95; }
+.cuebox.next { border: 2px solid var(--standby); border-left-width: 6px; background: #2a2410; }
+.cuebox.next .label { color: var(--standby); }
+/* Light pulse on NEXT only while timecode is running; still when paused. */
+.cuebox.next.running { animation: next-pulse 1.6s ease-in-out infinite; }
+@keyframes next-pulse { 0%, 100% { background: #2a2410; } 50% { background: #4a3d12; } }
 .standby-tag { display: none; background: var(--standby); color: #000; border-radius: 4px; padding: 0 6px; font-weight: 800; }
 .standby .standby-tag { display: inline; }
-.countdown { font-family: var(--mono); color: var(--standby); font-weight: 700; font-size: 14px; }
+.countdown { font-family: var(--mono); color: var(--standby); font-weight: 700; font-size: 17px; }
 .transport { display: flex; flex-direction: column; gap: 8px; }
 .go { background: var(--go); border: 0; font-size: 34px; font-weight: 900; letter-spacing: .1em; flex: 1; min-height: 64px; border-radius: 10px; }
 .go:active { transform: scale(.98); background: #3fb950; }
@@ -93,10 +99,10 @@ td { padding: 8px; border-bottom: 1px solid #20262e; vertical-align: top; }
 tbody tr { cursor: pointer; }
 tbody tr:hover { background: #1a1f26; }
 tr.done td { color: #6b7480; }
-tr.current { background: #13284a !important; box-shadow: inset 4px 0 var(--current); }
+tr.current { background: #3a1414 !important; box-shadow: inset 5px 0 var(--live); }
 tr.current td { color: var(--text); }
-tr.next { box-shadow: inset 4px 0 var(--line); }
-tr.next.standby { box-shadow: inset 4px 0 var(--standby); background: #221f12; }
+tr.next { box-shadow: inset 5px 0 var(--standby); background: #2a2410; }
+tr.next.running { animation: next-pulse 1.6s ease-in-out infinite; }
 tr.selected { outline: 1px dashed #58a6ff; outline-offset: -1px; }
 td.num { font-family: var(--mono); font-weight: 700; white-space: nowrap; }
 td.trig { font-family: var(--mono); white-space: nowrap; color: var(--dim); }
@@ -133,12 +139,19 @@ body.view-display .topbar .views, body.view-display .layout, body.view-display .
 body.view-display .band { grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; height: calc(100vh - 50px); }
 body.view-display .clock { grid-column: 1 / -1; align-items: center; }
 body.view-display .tcbig { font-size: min(12.5vw, 30vh); line-height: 1.05; }
-body.view-display .cuebox .num { font-size: 10vw; }
-body.view-display .cuebox .name { font-size: 3vw; }
-body.view-display .cuebox .meta, body.view-display .countdown { font-size: 2.4vw; }
-body.view-display .cuebox .label { font-size: 1.4vw; }
+body.view-display .cuebox .num { font-size: min(13vw, 22vh); }
+body.view-display .cuebox .name { font-size: 4vw; line-height: 1.15; }
+body.view-display .cuebox .meta, body.view-display .countdown { font-size: 3vw; }
+body.view-display .cuebox .label { font-size: 1.9vw; }
 
 @media (max-width: 1000px) {
   .band { grid-template-columns: 1fr 1fr; }
   .layout { grid-template-columns: 1fr; }
 }
+
+/* Buttons and selects do not inherit text-transform by default. */
+button, select { text-transform: inherit; letter-spacing: inherit; }
+/* Keep long notes inside the big display boxes. */
+body.view-display .cuebox .meta { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+button { white-space: nowrap; }
+.transport .row button, .side .row button { padding-left: 8px; padding-right: 8px; }

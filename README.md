@@ -32,15 +32,15 @@ It installs its one dependency the first time, starts the server and opens http:
 
 **A 2-minute test with no hardware:**
 
-1. Open http://localhost:3000. Under *Timecode source*, pick **Internal clock**, type `00:59:55:00` in the Locate box, then press **Connect source** and **▶ Run**.
+1. Open http://localhost:3000. Under *Timecode source*, pick **Internal clock**, type `00:59:55:00` in the Locate box, then press **Connect** and **▶ Run**.
 2. Watch cues 1, 2 and 3 fire on their own at 01:00:00, :05 and :10. STANDBY flashes 10 s before each one.
 3. Open http://localhost:3000/?view=display in a second window, or on a phone/tablet using the LAN address the terminal prints. It follows along.
 4. Type `01:00:22:00` and press **Locate**. Show Notes chases to cue 4 without firing it.
 5. Press **Space** for GO and **Backspace** for Back.
 
-**Test LTC without Dante:** Edit → Show settings → *LTC test generator* → Start. Then set the timecode source to **LTC**, choose an input that hears that output (a loopback device such as BlackHole on macOS or VB-Cable on Windows), and press Connect source.
+**Test LTC without Dante:** Edit → Show settings → *LTC test generator* → Start. Then set the timecode source to **LTC**, choose an input that hears that output (a loopback device such as BlackHole on macOS or VB-Cable on Windows), and press Connect.
 
-**Test LTC from Ableton (or any DAW) on the same machine:** make an LTC file with `node tools/make-ltc-wav.js --start 00:59:50:00 --fps 30 --minutes 5`. Put it on an audio track with **Warp off**, and send Ableton's output to a loopback device (VB-Cable on Windows, BlackHole on macOS). In Show Notes, choose Source **LTC audio** with input **CABLE Output** / **BlackHole**, then Connect source.
+**Test LTC from Ableton (or any DAW) on the same machine:** make an LTC file with `node tools/make-ltc-wav.js --start 00:59:50:00 --fps 30 --minutes 5`. Put it on an audio track with **Warp off**, and send Ableton's output to a loopback device (VB-Cable on Windows, BlackHole on macOS). In Show Notes, choose Source **LTC audio** with input **CABLE Output** / **BlackHole**, then Connect.
 
 ## Quick start (command line)
 
