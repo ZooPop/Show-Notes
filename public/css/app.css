@@ -230,7 +230,7 @@ body.view-display .esc-hint {
 body.view-display .esc-hint:hover { border-color: #8a94a3; color: #fff; }
 .esc-hint kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border: 1px solid #5a6472; border-bottom-width: 2px; border-radius: 4px; background: #0f1216; color: #fff; }
 
-/* ==== Show Notes · Video In (served at /video) ==== */
+/* ==== Show Notes · Video (served at /video) ==== */
 .video-only, .brand-sub { display: none !important; }
 body.video-in .video-only { display: revert !important; }
 body.video-in .pill.video-only { display: inline-block !important; }

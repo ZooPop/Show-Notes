@@ -1,4 +1,4 @@
-// Program feed for Show Notes · Video In.
+// Program feed for Show Notes · Video.
 // Plays either a capture device on this computer (DeckLink, OBS Virtual Camera, NDI Webcam)
 // or a network stream from MediaMTX (WebRTC via WHEP, or HLS on browsers that play it natively).
 

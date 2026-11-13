@@ -14,9 +14,9 @@ const LS_SHOW = 'shownotes.show';
 const LS_PREFS = 'shownotes.prefs';
 
 const prefs = { name: '', source: 'none', ltcDevice: '', ltcChannel: 0, mtcInput: '', feedSource: '', feedDevice: '', ...JSON.parse(localStorage.getItem(LS_PREFS) || '{}') };
-// Show Notes · Video In lives at /video: same app, plus the program feed (layout B).
+// Show Notes · Video lives at /video: same app, plus the program feed (layout B).
 const VIDEO_IN = /^\/video\/?$/.test(location.pathname);
-if (VIDEO_IN) { document.body.classList.add('video-in'); document.title = 'Show Notes · Video In'; }
+if (VIDEO_IN) { document.body.classList.add('video-in'); document.title = 'Show Notes · Video'; }
 const savePrefs = () => localStorage.setItem(LS_PREFS, JSON.stringify(prefs));
 
 // ---- store ---------------------------------------------------------------
@@ -267,7 +267,7 @@ function renderLog() {
 function renderSettings() {
   const { show } = store.state;
   $('#showName').textContent = show.name;
-  document.title = `${show.name} · Show Notes${VIDEO_IN ? ' · Video In' : ''}`;
+  document.title = `${show.name} · Show Notes${VIDEO_IN ? ' · Video' : ''}`;
   const set = (sel, v) => { const el = $(sel); if (document.activeElement !== el) el.value = v; };
   set('#setName', show.name);
   set('#setRate', show.rate);
@@ -689,7 +689,7 @@ window.showNotes = { store, dispatch, tcSeconds };
 // Display view: tappable "Hit Esc to exit" for touch screens.
 $('#escHint').addEventListener('click', () => setView('operate'));
 
-// ---- Video In: program feed -------------------------------------------------
+// ---- Video: program feed -------------------------------------------------
 import { ProgramFeed, listVideoInputs, normalizeFeedUrl } from './feed.js';
 
 const feed = new ProgramFeed($('#pgmVideo'), (state, text) => {
@@ -729,7 +729,7 @@ function startFeed() {
 }
 
 if (VIDEO_IN) {
-  // Video In: GO / BACK / RESET sits at the top of the right-hand column, above Program feed.
+  // Video: GO / BACK / RESET sits at the top of the right-hand column, above Program feed.
   $(".side").prepend($(".transport"));
   let lastFeedUrl = null;
   // Keep the shared address field in sync, and reconnect when someone changes it.

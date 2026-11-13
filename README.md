@@ -94,7 +94,7 @@ There's also an **LTC test generator** under Edit → Show settings. It plays LT
 * **TIME LEFT:** give a cue a length (m:ss, max 10:00) and CURRENT counts it down in a large badge. It turns orange in the last 30 s and flashes at 0:00. NEXT shows its full length. Timed cues count from their timecode, so the countdown pauses when playback pauses; manual cues count from when they were fired.
 * Every GO, chase, back and reset is written to the **show log** with wall-clock time, timecode and source. Export it as CSV for show reports.
 
-## Show Notes · Video In (program feed)
+## Show Notes · Video (program feed)
 
 A second version of the page lives at **`http://<computer>:3000/video`**. It's the same show, cues and timecode, plus a live **program feed**: video on the left, with timecode, CURRENT and NEXT stacked on the right, in both the Operate and Display views. The regular page at `/` is unchanged. Both versions stay in sync.
 
@@ -109,7 +109,7 @@ Pick the feed under **Program feed** (Operate view). Each screen chooses its own
 1. Download [MediaMTX](https://github.com/bluenviron/mediamtx/releases) and run `mediamtx.exe`. Allow it through Windows Firewall on private networks.
 2. In OBS, add your **Decklink Device** source. Then in Settings → Stream, choose **WHIP** with server `http://127.0.0.1:8889/program/whip` (OBS 30+), or **Custom** with `rtmp://127.0.0.1/program`.
 3. In Settings → Output: **H.264**, about 4–6 Mbps, **keyframe interval 1 s**, and **B-frames 0** (browsers can't play live WebRTC with B-frames).
-4. Start Streaming. In Show Notes · Video In, set the stream address to `<that computer's IP>:8889/program` and press Connect.
+4. Start Streaming. In Show Notes · Video, set the stream address to `<that computer's IP>:8889/program` and press Connect.
 5. If other devices connect but show no picture, add `webrtcAdditionalHosts: [<that computer's IP>]` to `mediamtx.yml` and restart MediaMTX.
 
 The video is always muted, so program audio never plays in the room.
