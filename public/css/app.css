@@ -215,3 +215,17 @@ body.view-display .timeleft .tl-val { font-size: calc(var(--fit, 1) * 6vw); }
 .timeleft[hidden] { display: none; }
 th { white-space: nowrap; }
 body.view-display .timeleft .tl-val { font-size: calc(var(--fit, 1) * 5vw); }
+
+/* ---- Header logo + Display exit hint ---- */
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-logo { height: 30px; width: auto; display: block; }
+.brand-div { width: 1px; height: 26px; background: #3a434f; }
+.brand-logo[hidden], .brand-div[hidden] { display: none; }
+.brand-title { font-weight: 800; letter-spacing: .06em; }
+.esc-hint { display: none; }
+body.view-display .esc-hint {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; font-size: 12px; font-weight: 700;
+  letter-spacing: .08em; color: #c8ced6; background: #1d222a; border: 1px solid #3a434f; border-radius: 99px;
+}
+body.view-display .esc-hint:hover { border-color: #8a94a3; color: #fff; }
+.esc-hint kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border: 1px solid #5a6472; border-bottom-width: 2px; border-radius: 4px; background: #0f1216; color: #fff; }

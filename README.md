@@ -134,6 +134,8 @@ If no server is reachable (for example, the page was opened from static hosting)
 
 **Show templates:** any show JSON in `data/` (committed) or `data/private/` (git-ignored, for shows with real names) appears under Edit → Show settings → *Load*. On first run, the server starts with the first private show if there is one, otherwise the example show.
 
+**Logo:** put a PNG at `data/private/logo.png` (git-ignored) or `data/logo.png` and it appears in the top-left corner next to the Show Notes title. Use a white or light logo with a transparent background so it suits the dark theme.
+
 CSV import/export columns are `number,name,leads,dept,tc,time,auto,notes,osc`.
 
 ## Environment variables

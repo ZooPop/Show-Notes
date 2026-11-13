@@ -9,12 +9,17 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">Show Notes</div>
+    <div class="brand">
+      <img id="brandLogo" class="brand-logo" src="api/logo" alt="" hidden />
+      <span class="brand-div" id="brandDiv" hidden></span>
+      <span class="brand-title">Show Notes</span>
+    </div>
     <div class="show-name" id="showName" title="Show name">Untitled Show</div>
     <div class="pills">
       <span class="pill" id="connPill" title="Server connection">Offline</span>
       <span class="pill" id="tcPill" title="Timecode source">No timecode</span>
     </div>
+    <button class="esc-hint" id="escHint" title="Back to the Operate view">Hit <kbd>Esc</kbd> to exit</button>
     <nav class="views">
       <button data-view="operate" class="active">Operate</button>
       <button data-view="edit">Edit</button>

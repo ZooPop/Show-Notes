@@ -103,6 +103,17 @@ function handler(req, res) {
     res.writeHead(200, { 'content-type': 'application/json' });
     return res.end(JSON.stringify(state.show, null, 2));
   }
+  if (url.pathname === '/api/logo' && req.method === 'GET') {
+    // Optional organisation logo: data/private/logo.png (git-ignored) or data/logo.png.
+    for (const f of [path.join(__dirname, 'data', 'private', 'logo.png'), path.join(__dirname, 'data', 'logo.png')]) {
+      if (fs.existsSync(f)) {
+        res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-cache' });
+        return fs.createReadStream(f).pipe(res);
+      }
+    }
+    res.writeHead(404);
+    return res.end();
+  }
   if (url.pathname === '/api/templates' && req.method === 'GET') {
     const id = url.searchParams.get('id');
     const body = id ? readTemplate(id) : listTemplates();

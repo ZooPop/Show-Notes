@@ -675,3 +675,13 @@ if (prefs.source !== 'none' && prefs.source !== 'ltc' && prefs.source !== 'mtc')
 
 // Exposed for debugging / automation from the console.
 window.showNotes = { store, dispatch, tcSeconds };
+
+// Optional logo in the header (served from data/private/logo.png when present).
+{
+  const logo = $('#brandLogo');
+  const show = () => { logo.hidden = false; $('#brandDiv').hidden = false; };
+  if (logo.complete && logo.naturalWidth) show();
+  else logo.addEventListener('load', show);
+}
+// Display view: tappable "Hit Esc to exit" for touch screens.
+$('#escHint').addEventListener('click', () => setView('operate'));
