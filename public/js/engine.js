@@ -35,6 +35,7 @@ export function createCue(fields = {}) {
     name: '',
     tc: '', // trigger timecode label, empty = manual (GO) cue
     dept: 'SM',
+    leads: '', // who is leading (singers / speakers)
     notes: '',
     auto: true, // allow timecode to fire this cue
     osc: '', // optional OSC message sent when the cue fires, e.g. "/cue/12/start"

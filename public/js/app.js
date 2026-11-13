@@ -139,11 +139,13 @@ function renderBand() {
   $('#curNum').textContent = cur ? cur.number : '—';
   $('#curName').textContent = cur ? cur.name : 'Ready — top of show';
   $('#curMeta').textContent = cur ? [cur.dept, cur.tc].filter(Boolean).join(' · ') : '';
+  $('#curLeads').hidden = !cur?.leads;
+  $('#curLeadsText').textContent = cur?.leads || '';
 
   const next = nextCue(state);
   $('#nextNum').textContent = next ? next.number : '—';
   $('#nextName').textContent = next ? next.name : 'End of cue list';
-  $('#nextMeta').textContent = next ? [next.dept, next.tc || 'manual GO', next.notes].filter(Boolean).join(' · ') : '';
+  setNextNotes(next ? next.notes || '' : '');
   const cd = countdown(state);
   const timed = cd != null && next?.auto !== false && show.settings.autoFire;
   $('#countdown').textContent = cd == null ? '' : cd < 0 ? `TC passed ${formatDuration(-cd)} ago` : (timed ? 'in ' : 'TC in ') + formatDuration(cd);
@@ -160,6 +162,29 @@ function renderBand() {
   $('#autoFireChk').checked = !!show.settings.autoFire;
 }
 
+// NEXT shows only the notes. On the Display view the text shrinks until the whole note fits.
+let nextNotesKey = '';
+function setNextNotes(text) {
+  const el = $('#nextNotes');
+  const key = `${text}|${document.body.className}|${innerWidth}x${innerHeight}`;
+  if (key === nextNotesKey) return;
+  nextNotesKey = key;
+  el.textContent = text;
+  fitNextNotes();
+}
+function fitNextNotes() {
+  const el = $('#nextNotes');
+  el.style.fontSize = '';
+  if (!document.body.classList.contains('view-display') || !el.textContent) return;
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  const min = 14;
+  while (el.scrollHeight > el.clientHeight + 1 && size > min) {
+    size -= 2;
+    el.style.fontSize = `${size}px`;
+  }
+}
+addEventListener('resize', () => { nextNotesKey = ''; renderBand(); });
+
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -175,6 +200,7 @@ function renderTable() {
       return `<tr data-id="${c.id}" class="${cls}">
         <td class="num">${esc(c.number)}</td>
         <td>${esc(c.name)}</td>
+        <td class="leads-cell">${esc(c.leads)}</td>
         <td><span class="dept dept-${esc(c.dept)}">${esc(c.dept)}</span></td>
         <td class="trig">${esc(c.tc) || '<span title="Manual GO">—</span>'}</td>
         <td>${c.tc ? (c.auto === false ? '✗' : '✓') : ''}</td>
@@ -298,9 +324,9 @@ function suggestNumber() {
 
 function openCueDialog(id, defaults = {}) {
   editingId = id;
-  const cue = id ? store.state.show.cues.find((c) => c.id === id) : { number: suggestNumber(), name: '', dept: 'SM', tc: '', auto: true, notes: '', osc: '', ...defaults };
+  const cue = id ? store.state.show.cues.find((c) => c.id === id) : { number: suggestNumber(), name: '', dept: 'SM', tc: '', auto: true, leads: '', notes: '', osc: '', ...defaults };
   $('#cueDialogTitle').textContent = id ? `Edit cue ${cue.number}` : 'New cue';
-  for (const k of ['number', 'name', 'dept', 'tc', 'notes', 'osc']) form[k].value = cue[k] ?? '';
+  for (const k of ['number', 'name', 'leads', 'dept', 'tc', 'notes', 'osc']) form[k].value = cue[k] ?? '';
   form.auto.checked = cue.auto !== false;
   $('#cueFormErr').hidden = true;
   dlg.showModal();
@@ -312,6 +338,7 @@ form.addEventListener('submit', (e) => {
   const data = {
     number: form.number.value.trim(),
     name: form.name.value.trim(),
+    leads: form.leads.value.trim(),
     dept: form.dept.value,
     tc: form.tc.value.trim(),
     auto: form.auto.checked,
@@ -351,7 +378,7 @@ $('#setChase').addEventListener('change', (e) => dispatch({ type: 'settings:upda
 $('#setOsc').addEventListener('change', (e) => dispatch({ type: 'settings:update', patch: { oscTarget: e.target.value.trim() } }));
 
 // ---- import / export -----------------------------------------------------
-const CSV_COLS = ['number', 'name', 'dept', 'tc', 'auto', 'notes', 'osc'];
+const CSV_COLS = ['number', 'name', 'leads', 'dept', 'tc', 'auto', 'notes', 'osc'];
 
 function download(name, text, type) {
   const a = document.createElement('a');
@@ -434,6 +461,7 @@ $('#fileInput').addEventListener('change', async (e) => {
         dept: (get(r, 'dept') || 'SM').toUpperCase(),
         tc: get(r, 'tc') || get(r, 'timecode'),
         auto: !/^(no|false|0|n)$/i.test(get(r, 'auto')),
+        leads: get(r, 'leads'),
         notes: get(r, 'notes'),
         osc: get(r, 'osc'),
       }));

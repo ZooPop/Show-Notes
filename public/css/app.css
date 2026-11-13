@@ -152,6 +152,17 @@ body.view-display .cuebox .label { font-size: 1.9vw; }
 /* Buttons and selects do not inherit text-transform by default. */
 button, select { text-transform: inherit; letter-spacing: inherit; }
 /* Keep long notes inside the big display boxes. */
-body.view-display .cuebox .meta { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 button { white-space: nowrap; }
 .transport .row button, .side .row button { padding-left: 8px; padding-right: 8px; }
+
+/* LEADS (current box + cue list) and full NEXT notes */
+.cuebox .leads { font-size: 19px; font-weight: 700; color: #ffd2cf; margin: 2px 0 4px; }
+.leads-label { font-size: .7em; font-weight: 800; letter-spacing: .1em; background: var(--live); color: #fff; border-radius: 4px; padding: 1px 6px; vertical-align: 2px; }
+td.leads-cell { color: #ffd2cf; font-weight: 600; font-size: 13px; }
+.notes-full { font-size: 17px; line-height: 1.35; color: #f6e7b0; white-space: pre-wrap; margin-top: 4px; }
+.cuebox .label .countdown { font-size: 15px; letter-spacing: .02em; }
+body.view-display .cuebox { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+body.view-display .cuebox .leads { font-size: 3.4vw; line-height: 1.15; }
+body.view-display .notes-full { flex: 1; min-height: 0; overflow: hidden; font-size: 3.4vw; line-height: 1.25; }
+body.view-display .cuebox .label .countdown { font-size: 1.9vw; }
+.tcbig { white-space: nowrap; overflow: hidden; }

@@ -33,13 +33,14 @@
         <div class="label">Current</div>
         <div class="num" id="curNum">—</div>
         <div class="name" id="curName">Ready</div>
+        <div class="leads" id="curLeads" hidden><span class="leads-label">Leads</span> <span id="curLeadsText"></span></div>
         <div class="meta" id="curMeta"></div>
       </div>
       <div class="cuebox next" id="nextBox">
-        <div class="label">Next <span id="standbyTag" class="standby-tag">STANDBY</span></div>
+        <div class="label">Next <span id="standbyTag" class="standby-tag">STANDBY</span> <span class="countdown" id="countdown"></span></div>
         <div class="num" id="nextNum">—</div>
         <div class="name" id="nextName"></div>
-        <div class="meta"><span id="nextMeta"></span> <span class="countdown" id="countdown"></span></div>
+        <div class="notes-full" id="nextNotes"></div>
       </div>
       <div class="transport">
         <button class="go" id="goBtn" title="GO (Space)">GO</button>
@@ -65,7 +66,7 @@
         <div class="table-wrap">
           <table id="cueTable">
             <thead>
-              <tr><th>Cue</th><th>Name</th><th>Dept</th><th>Trigger TC</th><th title="Fire automatically from timecode">Auto</th><th>Notes</th><th class="actions"></th></tr>
+              <tr><th>Cue</th><th>Name</th><th>Leads</th><th>Dept</th><th>Trigger TC</th><th title="Fire automatically from timecode">Auto</th><th>Notes</th><th class="actions"></th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -169,6 +170,7 @@
         <div class="field"><label>Department</label><select name="dept"></select></div>
       </div>
       <div class="field"><label>Name</label><input name="name" /></div>
+      <div class="field"><label>Leads <small>(who is leading)</small></label><input name="leads" placeholder="e.g. Macie &amp; Hailee" /></div>
       <div class="grid2">
         <div class="field"><label>Trigger timecode <small>(blank = manual GO)</small></label><input name="tc" placeholder="01:00:00:00" /></div>
         <div class="field"><label>&nbsp;</label><label class="toggle"><input type="checkbox" name="auto" /> Fire from timecode</label></div>
