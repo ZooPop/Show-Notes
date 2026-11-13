@@ -22,7 +22,7 @@ Web-based cue calling and tracking driven by **SMPTE timecode**. Show Notes alwa
 ## Test it on your computer
 
 1. Install **Node.js 18 or newer** (LTS) from https://nodejs.org.
-2. Unzip `show-notes.zip` (or clone this repo and open the `show-notes` folder).
+2. Download this repo (green **Code** button → **Download ZIP**, or https://github.com/ZooPop/show-notes/archive/refs/heads/main.zip) and unzip it.
 3. Double-click the launcher for your system:
    * macOS: `start-mac.command` (first time: right-click → Open, because it is an unsigned script)
    * Windows: `start-windows.bat`
@@ -45,6 +45,7 @@ It installs its one dependency the first time, starts the server and opens http:
 ## Quick start (command line)
 
 ```bash
+git clone https://github.com/ZooPop/show-notes.git
 cd show-notes
 npm install
 npm start            # http://localhost:3000
