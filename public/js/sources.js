@@ -1,12 +1,13 @@
 // Browser timecode sources. Each source calls onTC(tc) and onStatus(status).
 import { fromFrames, toFrames, addFrames, parseTC, nominal } from './timecode.js';
 import { MTCParser } from './mtc.js';
+import { LTCDecoder } from './ltc-decoder.js';
 
 export const SOURCE_TYPES = {
   none: 'Off',
-  internal: 'Internal clock',
-  ltc: 'LTC audio (Dante / soundcard)',
-  mtc: 'MIDI Timecode (MTC)',
+  ltc: 'LTC in (Dante / soundcard)',
+  mtc: 'MTC in (MIDI)',
+  internal: 'Internal clock (rehearsal)',
 };
 
 export function secureContextNote() {
@@ -84,33 +85,46 @@ export class LTCSource {
   }
 
   async start() {
-    this.ctx = new AudioContext({ latencyHint: 'interactive' });
-    await this.ctx.audioWorklet.addModule('js/ltc-worklet.js');
-    this.stream = await navigator.mediaDevices.getUserMedia({
+    // Ask for as many channels as the device offers (Dante Virtual Soundcard can have dozens),
+    // with all voice processing off so the LTC arrives untouched.
+    const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         deviceId: this.deviceId ? { exact: this.deviceId } : undefined,
-        channelCount: { ideal: 64 },
+        channelCount: { ideal: 32 },
         echoCancellation: false,
         noiseSuppression: false,
         autoGainControl: false,
       },
     });
-    const src = this.ctx.createMediaStreamSource(this.stream);
-    const channels = src.channelCount || 2;
+    return this.attach(stream);
+  }
+
+  /** Listen to an audio stream (split out so it can be tested with a synthetic multichannel stream). */
+  async attach(stream) {
+    this.stream = stream;
+    const track = stream.getAudioTracks()[0];
+    // Chromium (Brave / Chrome / Edge): read the raw track so every channel is kept. Web Audio's
+    // stream input mixes multichannel devices down to stereo, which loses channel 3 and up.
+    if (track && typeof MediaStreamTrackProcessor === 'function') return this.attachRaw(track);
+    this.ctx = new AudioContext({ latencyHint: 'interactive' });
+    await this.ctx.audioWorklet.addModule('js/ltc-worklet.js');
+    const src = this.ctx.createMediaStreamSource(stream);
+    // 'max' + 'discrete' passes every channel of the input through untouched. (The old fixed
+    // 2-channel setting mixed channel 3 and up away before the decoder ever saw them.)
     this.node = new AudioWorkletNode(this.ctx, 'ltc-reader', {
       numberOfInputs: 1,
       numberOfOutputs: 0,
-      channelCount: channels,
-      channelCountMode: 'explicit',
+      channelCountMode: 'max',
       channelInterpretation: 'discrete',
       processorOptions: { channel: this.channel },
     });
     this.node.port.onmessage = (e) => this.onMessage(e.data);
     src.connect(this.node);
-    this.onStatus({ state: 'waiting', text: `Listening on channel ${this.channel + 1} — no LTC yet` });
+    if (this.ctx.state !== 'running') await this.ctx.resume().catch(() => {});
+    this.onStatus({ state: 'waiting', text: `Listening for LTC on channel ${this.channel + 1}…` });
     this.watchdog = setInterval(() => {
       if (this.lastFrameAt && performance.now() - this.lastFrameAt > 500) {
-        this.onStatus({ state: 'stopped', text: 'LTC stopped (no signal)' });
+        this.onStatus({ state: 'stopped', text: `LTC stopped on channel ${this.channel + 1} (no signal)` });
         this.lastFrameAt = 0;
       }
     }, 250);
@@ -131,18 +145,61 @@ export class LTCSource {
     else if (this.maxFrame === 23 && this.fps > 25) fps = 24;
     // The frame is reported once its last bit arrives, so we are now one frame later.
     const tc = fr.reverse ? fr : addFrames(fr, 1, fps, fr.drop);
-    if (!this.lastFrameAt) this.onStatus({ state: 'running', text: `LTC locked · ${fps}${fr.drop ? ' DF' : ''} fps` });
+    if (!this.lastFrameAt) this.onStatus({ state: 'running', text: `Following LTC on channel ${this.channel + 1} · ${fps}${fr.drop ? ' DF' : ''} fps` });
     this.lastFrameAt = performance.now();
     this.onTC({ h: tc.h, m: tc.m, s: tc.s, f: tc.f, fps, drop: fr.drop, source: 'ltc' });
   }
 
+  /** Decode LTC straight from the track's raw audio frames, with all channels available. */
+  attachRaw(track) {
+    this.reader = new MediaStreamTrackProcessor({ track }).readable.getReader();
+    let decoder = null, buf = new Float32Array(0), peak = 0, counted = 0;
+    this.onStatus({ state: 'waiting', text: `Listening for LTC on channel ${this.channel + 1}…` });
+    this.startWatchdog();
+    const pump = async () => {
+      for (;;) {
+        let r;
+        try { r = await this.reader.read(); } catch { return; }
+        if (r.done) return;
+        const ad = r.value;
+        try {
+          if (!decoder || decoder.sampleRate !== ad.sampleRate) {
+            decoder = new LTCDecoder(ad.sampleRate, (frame) => this.onMessage({ type: 'frame', frame }));
+          }
+          const n = ad.numberOfChannels;
+          this.channelsReceived = n;
+          if (buf.length !== ad.numberOfFrames) buf = new Float32Array(ad.numberOfFrames);
+          ad.copyTo(buf, { planeIndex: Math.min(this.channel, n - 1), format: 'f32-planar' });
+          decoder.process(buf);
+          for (let i = 0; i < buf.length; i++) { const a = buf[i] < 0 ? -buf[i] : buf[i]; if (a > peak) peak = a; }
+          counted += ad.numberOfFrames;
+          if (counted >= ad.sampleRate / 15) { this.onLevel?.(peak, n); peak = 0; counted = 0; }
+        } finally {
+          ad.close();
+        }
+      }
+    };
+    pump();
+  }
+
+  startWatchdog() {
+    clearInterval(this.watchdog);
+    this.watchdog = setInterval(() => {
+      if (this.lastFrameAt && performance.now() - this.lastFrameAt > 500) {
+        this.onStatus({ state: 'stopped', text: `LTC stopped on channel ${this.channel + 1} (no signal)` });
+        this.lastFrameAt = 0;
+      }
+    }, 250);
+  }
+
   setChannel(ch) {
-    this.channel = ch;
+    this.channel = ch; // the raw reader picks this up on the next audio frame
     this.node?.port.postMessage({ type: 'channel', channel: ch });
   }
 
   destroy() {
     clearInterval(this.watchdog);
+    this.reader?.cancel().catch(() => {});
     this.stream?.getTracks().forEach((t) => t.stop());
     this.ctx?.close();
   }

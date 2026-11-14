@@ -17,7 +17,7 @@
     <div class="show-name" id="showName" title="Show name">Untitled Show</div>
     <div class="pills">
       <span class="pill" id="connPill" title="Server connection">Offline</span>
-      <span class="pill" id="tcPill" title="Timecode source">No timecode</span>
+      <span class="pill" id="tcPill" title="Timecode in">No timecode</span>
       <span class="pill video-only" id="pgmPill" title="Program feed">No feed</span>
     </div>
     <button class="esc-hint" id="escHint" title="Back to the Operate view">Hit <kbd>Esc</kbd> to exit</button>
@@ -111,7 +111,7 @@
           <p class="status" id="feedStatus">Program feed off.</p>
         </section>
         <section class="panel">
-          <div class="panel-head"><h2>Timecode source</h2></div>
+          <div class="panel-head"><h2>Timecode in</h2></div>
           <div class="field">
             <label for="srcType">Source</label>
             <select id="srcType"></select>
@@ -149,11 +149,11 @@
           </div>
 
           <div class="row">
-            <button id="srcStart" class="primary">Connect</button>
-            <button id="srcStop">Disconnect</button>
+            <button id="srcStart" class="primary">Listen</button>
+            <button id="srcStop">Stop</button>
           </div>
-          <p class="status" id="srcStatus">Not connected.</p>
-          <p class="hint">This browser sends the timecode to the server, and every connected device follows it.</p>
+          <p class="status" id="srcStatus">Not listening.</p>
+          <p class="hint">Show Notes follows the timecode you send it. It listens here, and every connected screen follows along. Show Notes never sends or controls timecode.</p>
         </section>
 
         <section class="panel">

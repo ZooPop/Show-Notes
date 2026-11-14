@@ -7,7 +7,7 @@ Web-based cue calling and tracking driven by **SMPTE timecode**. Show Notes alwa
   ┌───────────────┐   LTC on a Dante channel   ┌──────────────────────────────┐
   │ Playback /    │ ─────────────────────────▶ │ Show Notes machine           │
   │ TC generator  │                            │  Dante Virtual Soundcard/Via │
-  └───────────────┘                            │  Browser (TC master) ──┐     │
+  └───────────────┘                            │  Browser (TC in)  ─────┐     │
   ┌───────────────┐   MTC (USB/RTP MIDI)       │    decodes LTC/MTC     │ WS  │
   │ DAW / QLab    │ ─────────────────────────▶ │  Node server ◀─────────┘     │
   └───────────────┘   OSC  /shownotes/...  ──▶ │   cue engine + state         │
@@ -69,7 +69,7 @@ Open the page on any device on the same network (the server prints the LAN addre
 
 ## Timecode sources
 
-Choose the source on the machine that has the timecode. That browser becomes the **TC master** and streams the timecode to the server, and everyone else follows.
+Show Notes **follows** timecode; it never generates or controls it. Under **Timecode in**, on the machine that receives the timecode (e.g. the one running Dante Virtual Soundcard), pick the input and press **Listen**. That browser passes what it hears to the server, and every connected screen follows. LTC can be on any channel the device offers (up to 32), e.g. channel 3 of Dante Virtual Soundcard.
 
 | Source | How it works |
 | --- | --- |
@@ -78,7 +78,7 @@ Choose the source on the machine that has the timecode. That browser becomes the
 | **Internal clock** | A free-running clock with Run / Stop / Locate, for rehearsals without a timecode source. |
 | **OSC** | Any device can push timecode: `/shownotes/tc "01:00:10:00" [fps]`. |
 
-> **Secure context:** browsers only allow audio and MIDI input on `https://` or `http://localhost`. Open the TC master at `http://localhost:3000` on the Dante machine. Other devices can use the LAN address because they only view. To capture on another machine, serve over HTTPS: `HTTPS_KEY=key.pem HTTPS_CERT=cert.pem npm start`.
+> **Secure context:** browsers only allow audio and MIDI input on `https://` or `http://localhost`. Open the listening page at `http://localhost:3000` on the Dante machine. Other devices can use the LAN address because they only view. To capture on another machine, serve over HTTPS: `HTTPS_KEY=key.pem HTTPS_CERT=cert.pem npm start`.
 
 > **Channel count:** some browser/driver combinations only expose the first 2 channels of a multichannel device. If your LTC is on a high channel, route it to DVS channel 1 or 2 in Dante Controller.
 

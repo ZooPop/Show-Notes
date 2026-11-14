@@ -278,7 +278,7 @@ function renderSettings() {
 
 function renderClients() {
   $('#clients').innerHTML = store.clients
-    .map((c) => `<li class="${c.id === store.myId ? 'me' : ''}">${esc(c.name)}${c.role === 'tc-master' ? ' <span class="role">· TC master</span>' : ''}${c.id === store.myId ? ' (you)' : ''}</li>`)
+    .map((c) => `<li class="${c.id === store.myId ? 'me' : ''}">${esc(c.name)}${c.role === 'tc-master' ? ' <span class="role">· timecode in</span>' : ''}${c.id === store.myId ? ' (you)' : ''}</li>`)
     .join('') || '<li>Only this browser</li>';
 }
 
@@ -512,7 +512,7 @@ let midiAccess = null;
 
 $('#srcType').innerHTML = Object.entries(SOURCE_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
 $('#srcType').value = prefs.source;
-$('#ltcChannel').innerHTML = Array.from({ length: 64 }, (_, i) => `<option value="${i}">${i + 1}</option>`).join('');
+$('#ltcChannel').innerHTML = Array.from({ length: 32 }, (_, i) => `<option value="${i}">${i + 1}</option>`).join('');
 $('#ltcChannel').value = prefs.ltcChannel;
 
 function showSourceOptions() {
@@ -574,7 +574,11 @@ async function startSource() {
         ...common, deviceId: prefs.ltcDevice, channel: prefs.ltcChannel, fps: rate.fps,
         onLevel: (peak, channels) => {
           $('#ltcMeter').style.width = `${Math.min(100, peak * 100)}%`;
-          if (channels && channels <= prefs.ltcChannel) setSrcStatus({ text: `Input only has ${channels} channel(s) — pick channel ≤ ${channels}.` });
+          const st = $('#srcStatus');
+          if (channels && channels > prefs.ltcChannel && st.textContent.startsWith('Listening for LTC') && !st.textContent.includes('channels coming in')) {
+            st.textContent = `Listening for LTC on channel ${prefs.ltcChannel + 1}… (${channels} channels coming in)`;
+          }
+          if (channels && channels <= prefs.ltcChannel) setSrcStatus({ text: `The browser is only receiving ${channels} channel(s) from this input, so channel ${prefs.ltcChannel + 1} isn't available. Check the device's channel count (e.g. Dante Virtual Soundcard settings) or route the LTC to a lower channel.` });
         },
       });
       await activeSource.start();
@@ -586,7 +590,7 @@ async function startSource() {
       activeSource = new MTCSource({ ...common, access: midiAccess, inputId: prefs.mtcInput });
       activeSource.start();
     } else {
-      setSrcStatus({ text: 'Not connected.' });
+      setSrcStatus({ text: 'Not listening.' });
     }
   } catch (e) {
     activeSource = null;
@@ -599,7 +603,7 @@ function stopSource() {
   activeSource?.destroy();
   activeSource = null;
   $('#ltcMeter').style.width = '0';
-  setSrcStatus({ text: 'Not connected.' });
+  setSrcStatus({ text: 'Not listening.' });
   identify();
 }
 
