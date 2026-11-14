@@ -91,6 +91,12 @@ function onServerMessage(msg) {
       store.state = { ...store.state, log: [...store.state.log, msg.event.entry].slice(-500) };
       onEngineEvent(msg.event);
       break;
+    case 'ltcServer':
+      onLtcServer(msg);
+      return;
+    case 'ltcLevel':
+      $('#srvMeter').style.width = `${Math.min(100, msg.peak * 100)}%`;
+      return;
     case 'clients':
       store.clients = msg.clients;
       renderClients();
@@ -518,6 +524,7 @@ $('#ltcChannel').value = prefs.ltcChannel;
 function showSourceOptions() {
   const type = $('#srcType').value;
   $$('.src-opts').forEach((el) => (el.hidden = el.dataset.src !== type));
+  if (type === 'server') refreshServerDevices();
   const note = type === 'ltc' || type === 'mtc' ? secureContextNote() : '';
   $('#secureWarn').hidden = !note;
   $('#secureWarn').textContent = note;
@@ -559,6 +566,8 @@ async function startSource() {
   const type = $('#srcType').value;
   prefs.source = type;
   savePrefs();
+  if (type === 'server') return startServerLTC();
+  if (type !== 'none' && serverLtc.status?.state && serverLtc.status.state !== 'off') stopServerLTC(); // one timecode input at a time
   const rate = rateById(store.state.show.rate);
   const common = { onTC: sendTC, onStatus: setSrcStatus };
   try {
@@ -613,6 +622,7 @@ function identify() {
 
 $('#srcType').addEventListener('change', showSourceOptions);
 $('#srcStart').addEventListener('click', startSource);
+$('#srcStop').addEventListener('click', () => { if ($('#srcType').value === 'server') stopServerLTC(); });
 $('#srcStop').addEventListener('click', stopSource);
 $('#ltcChannel').addEventListener('change', (e) => {
   prefs.ltcChannel = +e.target.value;
@@ -678,7 +688,7 @@ showSourceOptions();
 render();
 renderClients();
 connect();
-if (prefs.source !== 'none' && prefs.source !== 'ltc' && prefs.source !== 'mtc') startSource();
+if (prefs.source === 'internal') startSource(); // LTC/MTC need a click (browser permission); server LTC resumes by itself
 
 // Exposed for debugging / automation from the console.
 window.showNotes = { store, dispatch, tcSeconds };
@@ -773,4 +783,53 @@ if (VIDEO_IN) {
     btn.classList.toggle('on', !VIDEO_IN); // slide the knob, then switch pages
     setTimeout(() => { location.href = (VIDEO_IN ? '/' : '/video') + location.search; }, 220); // keeps the current tab
   });
+}
+
+// ---- Server-side LTC input: the Show Notes computer listens on any channel ----------
+const serverLtc = { status: null, settings: null, available: false, devices: [] };
+
+function onLtcServer(msg) {
+  Object.assign(serverLtc, { status: msg.status, settings: msg.settings, available: msg.available });
+  if ($('#srcType').value === 'server') setSrcStatus(msg.status);
+  if (msg.status?.state === 'off') $('#srvMeter').style.width = '0';
+}
+
+async function refreshServerDevices() {
+  try {
+    const info = await (await fetch('/api/ltc')).json();
+    Object.assign(serverLtc, { status: info.status, settings: info.settings, available: info.available, devices: info.devices || [] });
+    const sel = $('#srvDevice');
+    if (!info.available) {
+      sel.innerHTML = '<option value="">Not available</option>';
+      setSrcStatus({ text: info.error || 'Server audio input is not available.' });
+      return;
+    }
+    sel.innerHTML = serverLtc.devices.length
+      ? serverLtc.devices.map((d) => `<option value="${esc(d.name)}">${esc(d.name)} · ${d.inputChannels} ch</option>`).join('')
+      : '<option value="">No audio inputs found</option>';
+    const preferred = serverLtc.devices.find((d) => d.name === info.settings?.deviceName) || serverLtc.devices.find((d) => /dante/i.test(d.name)) || serverLtc.devices.find((d) => d.isDefaultInput);
+    if (preferred) sel.value = preferred.name;
+    fillServerChannels(info.settings?.channel ?? 2);
+    setSrcStatus(info.status);
+  } catch {
+    setSrcStatus({ text: 'Server audio input needs the Show Notes server (not available in local-only mode).' });
+  }
+}
+
+function fillServerChannels(selected) {
+  const dev = serverLtc.devices.find((d) => d.name === $('#srvDevice').value);
+  const n = dev ? dev.inputChannels : 0;
+  $('#srvChannel').innerHTML = Array.from({ length: n }, (_, i) => `<option value="${i}">${i + 1}</option>`).join('');
+  if (n) $('#srvChannel').value = String(Math.min(selected, n - 1));
+}
+$('#srvDevice').addEventListener('change', () => fillServerChannels(+$('#srvChannel').value || 0));
+
+async function startServerLTC() {
+  setSrcStatus({ text: 'Starting…' });
+  const res = await fetch('/api/ltc/start', { method: 'POST', body: JSON.stringify({ deviceName: $('#srvDevice').value, channel: +$('#srvChannel').value }) }).catch(() => null);
+  if (!res) setSrcStatus({ text: 'Could not reach the Show Notes server.' });
+}
+
+async function stopServerLTC() {
+  await fetch('/api/ltc/stop', { method: 'POST', body: '{}' }).catch(() => null);
 }

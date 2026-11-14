@@ -7,7 +7,8 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-if not exist node_modules call npm install --no-audit --no-fund
-start "" http://localhost:3000
+REM Install or update dependencies when package.json has changed (e.g. after updating Show Notes).
+node -e "const f=require('fs'),l='node_modules/.package-lock.json';process.exit(!f.existsSync(l)||f.statSync('package.json').mtimeMs>f.statSync(l).mtimeMs?1:0)" || call npm install --no-audit --no-fund
+start "" cmd /c "timeout /t 2 >nul & start http://localhost:3000"
 node server.js
 pause

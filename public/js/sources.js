@@ -5,7 +5,8 @@ import { LTCDecoder } from './ltc-decoder.js';
 
 export const SOURCE_TYPES = {
   none: 'Off',
-  ltc: 'LTC in (Dante / soundcard)',
+  server: 'LTC in (any channel)',
+  ltc: 'LTC in: browser (ch 1–2)',
   mtc: 'MTC in (MIDI)',
   internal: 'Internal clock (rehearsal)',
 };

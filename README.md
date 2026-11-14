@@ -73,14 +73,18 @@ Show Notes **follows** timecode; it never generates or controls it. Under **Time
 
 | Source | How it works |
 | --- | --- |
-| **LTC (Dante / soundcard)** | Install Dante Virtual Soundcard (or Dante Via) on the Show Notes machine and route the LTC channel to it in Dante Controller. In Show Notes, pick the DVS input and the channel. The LTC is decoded in the browser (AudioWorklet). It handles 24/25/29.97DF/30 fps, auto-detects the frame rate, and decodes reverse play. |
+| **LTC in (any channel)**, recommended | The Show Notes **server** opens the audio device itself and listens on exactly the channel you pick, e.g. **channel 3 of Dante Virtual Soundcard**. Choose the device and channel and press **Listen**. You can do this from any screen, even a tablet. It remembers the choice and starts listening again whenever Show Notes restarts. It handles 24/25/29.97DF/30 fps, auto-detects the frame rate, and decodes reverse play. |
+| **LTC in: browser (ch 1–2)** | The older method: the browser decodes LTC from an audio input. Browsers usually only expose the first **2 channels** of a device, so use this only if your LTC is on channel 1 or 2. |
 | **MIDI Timecode** | Web MIDI (Chrome/Edge). Quarter-frame and full-frame (locate) messages are supported. |
 | **Internal clock** | A free-running clock with Run / Stop / Locate, for rehearsals without a timecode source. |
 | **OSC** | Any device can push timecode: `/shownotes/tc "01:00:10:00" [fps]`. |
 
+> **macOS: allow microphone access once.** macOS asks before any app reads an audio input, Dante Virtual Soundcard included. The first time you press **Listen** with *LTC in (any channel)*, allow **Terminal** (or whatever started Show Notes) to use the microphone. If the level meter stays empty, turn it on in **System Settings → Privacy & Security → Microphone**, then restart Show Notes.
+>
+> **Channel count:** the channel list shows how many inputs the device has. If you need a channel that isn't listed, raise the device's channel count in Dante Virtual Soundcard's settings.
+
 > **Secure context:** browsers only allow audio and MIDI input on `https://` or `http://localhost`. Open the listening page at `http://localhost:3000` on the Dante machine. Other devices can use the LAN address because they only view. To capture on another machine, serve over HTTPS: `HTTPS_KEY=key.pem HTTPS_CERT=cert.pem npm start`.
 
-> **Channel count:** some browser/driver combinations only expose the first 2 channels of a multichannel device. If your LTC is on a high channel, route it to DVS channel 1 or 2 in Dante Controller.
 
 There's also an **LTC test generator** under Edit → Show settings. It plays LTC to an audio output. Select Dante Virtual Soundcard as the output to put it on the network.
 

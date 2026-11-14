@@ -12,6 +12,7 @@ import { WebSocketServer } from 'ws';
 import { apply, createState, normalizeShow } from './public/js/engine.js';
 import { parseTC } from './public/js/timecode.js';
 import * as osc from './lib/osc.js';
+import { ServerLTCInput } from './lib/ltc-input.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.PORT || 3000);
@@ -103,6 +104,23 @@ function handler(req, res) {
     res.writeHead(200, { 'content-type': 'application/json' });
     return res.end(JSON.stringify(state.show, null, 2));
   }
+  if (url.pathname === '/api/ltc' && req.method === 'GET') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify({ available: ltcIn.available, error: ltcIn.loadError, status: ltcIn.status, settings: ltcIn.settings, devices: ltcIn.listDevices() }));
+  }
+  if ((url.pathname === '/api/ltc/start' || url.pathname === '/api/ltc/stop') && req.method === 'POST') {
+    let body = '';
+    req.on('data', (c) => { body += c; if (body.length > 1e4) req.destroy(); });
+    req.on('end', () => {
+      let opts = {};
+      try { opts = JSON.parse(body || '{}'); } catch {}
+      if (url.pathname.endsWith('/start')) ltcIn.start({ deviceId: opts.deviceId, deviceName: opts.deviceName, channel: Number(opts.channel) || 0 });
+      else ltcIn.stop();
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ status: ltcIn.status, settings: ltcIn.settings }));
+    });
+    return;
+  }
   if (url.pathname === '/api/logo' && req.method === 'GET') {
     // Optional organisation logo: data/private/logo.png (git-ignored) or data/logo.png.
     for (const f of [path.join(__dirname, 'data', 'private', 'logo.png'), path.join(__dirname, 'data', 'logo.png')]) {
@@ -173,6 +191,7 @@ wss.on('connection', (ws, req) => {
   ws.name = `client-${ws.id}`;
   ws.role = 'viewer';
   ws.send(JSON.stringify({ type: 'hello', id: ws.id, show: state.show, runtime: state.runtime, log: state.log }));
+  ws.send(JSON.stringify({ type: 'ltcServer', status: ltcIn.status, settings: ltcIn.settings, available: ltcIn.available }));
   broadcast({ type: 'clients', clients: clientList() });
   ws.on('message', (raw) => {
     let msg;
@@ -223,6 +242,16 @@ function sendCueOsc(cue) {
 }
 
 // ---- start ---------------------------------------------------------------
+// ---- Server-side LTC input (any channel of any audio device on this computer) ----
+let ltcLevelAt = 0;
+const ltcIn = new ServerLTCInput({
+  settingsFile: path.join(__dirname, 'data', 'ltc-input.json'),
+  onTC: (tc) => dispatch({ type: 'timecode', tc }, 'ltc-in'),
+  onStatus: (status) => broadcast({ type: 'ltcServer', status, settings: ltcIn.settings, available: ltcIn.available }),
+  onLevel: (peak) => { const now = Date.now(); if (now - ltcLevelAt > 90) { ltcLevelAt = now; broadcast({ type: 'ltcLevel', peak }); } },
+});
+ltcIn.autoStart();
+
 server.listen(PORT, () => {
   const proto = useHttps ? 'https' : 'http';
   console.log(`\nShow Notes running:`);
