@@ -102,15 +102,33 @@ export class ProgramFeed {
       };
       pc.onconnectionstatechange = () => {
         if (pc !== this.pc) return;
-        if (pc.connectionState === 'connected') this.status('live', 'Live (network stream)');
+        if (pc.connectionState === 'connected') { clearTimeout(this.iceTimer); this.status('live', 'Live (network stream)'); }
         if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') this.scheduleRetry('Stream dropped');
       };
       await pc.setLocalDescription(await pc.createOffer());
       await waitForIce(pc, 2000);
-      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/sdp' }, body: pc.localDescription.sdp });
+      const abort = new AbortController();
+      const answerTimer = setTimeout(() => abort.abort(), 6000);
+      let res;
+      try {
+        res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/sdp' }, body: pc.localDescription.sdp, signal: abort.signal });
+      } catch (err) {
+        const host = new URL(url).host;
+        throw new Error(err.name === 'AbortError' ? `MediaMTX at ${host} didn't answer` : `can't reach MediaMTX at ${host} (is it running, and is TCP ${new URL(url).port || 80} allowed through that PC's firewall?)`);
+      } finally {
+        clearTimeout(answerTimer);
+      }
       if (!res.ok) throw new Error(res.status === 404 ? 'no stream at that address (is OBS streaming?)' : `server answered ${res.status}`);
       if (pc !== this.pc) return;
       await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
+      // MediaMTX answered, so the video itself must now connect (UDP 8189 by default). If it doesn't,
+      // say why instead of sitting on "Connecting…" forever.
+      clearTimeout(this.iceTimer);
+      this.iceTimer = setTimeout(() => {
+        if (pc === this.pc && pc.connectionState !== 'connected') {
+          this.scheduleRetry(`Reached MediaMTX, but the video didn't come through. On the video PC, allow UDP 8189 through the firewall (network set to Private) and set webrtcAdditionalHosts in mediamtx.yml`);
+        }
+      }, 8000);
     } catch (e) {
       this.scheduleRetry(`Not connected: ${e.message}`);
     }
@@ -124,6 +142,7 @@ export class ProgramFeed {
   }
 
   stop(silent = false) {
+    clearTimeout(this.iceTimer);
     clearTimeout(this.retry);
     this.retry = null;
     if (this.pc) { this.pc.close(); this.pc = null; }
