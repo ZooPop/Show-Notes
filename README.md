@@ -32,7 +32,7 @@ It installs its one dependency the first time, starts the server and opens http:
 
 **A 2-minute test with no hardware:**
 
-1. Open http://localhost:3000. Under *Timecode source*, pick **Internal clock**, type `00:59:55:00` in the Locate box, then press **Connect** and **▶ Run**.
+1. Open http://localhost:3000. Under *Timecode source*, pick **Practice clock**, type `00:59:55:00` in the Locate box, then press **Connect** and **▶ Run**.
 2. Watch cues 1, 2 and 3 fire on their own at 01:00:00, :05 and :10. STANDBY flashes 10 s before each one.
 3. Open http://localhost:3000/?view=display in a second window, or on a phone/tablet using the LAN address the terminal prints. It follows along.
 4. Type `01:00:22:00` and press **Locate**. Show Notes chases to cue 4 without firing it.
@@ -58,13 +58,13 @@ Show Notes runs fully on Linux, including the server-side LTC input and Show Not
 
 **Dante on Linux:** Audinate doesn't make Dante Virtual Soundcard for Linux. Options:
 - a **Dante USB interface** such as a Dante AVIO USB adapter. It shows up as a normal USB sound card; the AVIO USB has 2 channels, so put the LTC on 1 or 2.
-- a multichannel **Dante-to-USB interface**, which works with any channel via *LTC in (any channel)*.
+- a multichannel **Dante-to-USB interface**, which works with any channel via the *Dante* source.
 - **Inferno**, an unofficial open-source Dante implementation for Linux (experimental).
 - Or send **MTC** or **OSC timecode** to Show Notes over the network from the Ableton computer.
 
-**Browsers:** Chromium, Brave or Chrome are recommended. Firefox works for everything except *MTC in (MIDI)*, because it needs a separate site permission for Web MIDI.
+**Browsers:** Chromium, Brave or Chrome are recommended. Firefox works for everything except the *MIDI* timecode source, because it needs a separate site permission for Web MIDI.
 
-**Program feed (Show Notes · Video):** the *Network stream* source works on any Linux browser. For a *capture device*, Blackmagic's Desktop Video drivers for Linux work in **OBS**. Use OBS's Virtual Camera, which on Linux needs `v4l2loopback` (Arch: `sudo pacman -S v4l2loopback-dkms`), or stream from OBS to MediaMTX (Linux builds are available).
+**Program feed (Show Notes · Video):** the *OBS stream* source works on any Linux browser. For a *camera / capture card*, Blackmagic's Desktop Video drivers for Linux work in **OBS**. Use OBS's Virtual Camera, which on Linux needs `v4l2loopback` (Arch: `sudo pacman -S v4l2loopback-dkms`), or stream from OBS to MediaMTX (Linux builds are available).
 
 ## Quick start (command line)
 
@@ -97,13 +97,13 @@ Show Notes **follows** timecode; it never generates or controls it. Under **Time
 
 | Source | How it works |
 | --- | --- |
-| **LTC in (any channel)**, recommended | The Show Notes **server** opens the audio device itself and listens on exactly the channel you pick, e.g. **channel 3 of Dante Virtual Soundcard**. Choose the device and channel and press **Listen**. You can do this from any screen, even a tablet. It remembers the choice and starts listening again whenever Show Notes restarts. It handles 24/25/29.97DF/30 fps, auto-detects the frame rate, and decodes reverse play. |
-| **LTC in: browser (ch 1–2)** | The older method: the browser decodes LTC from an audio input. Browsers usually only expose the first **2 channels** of a device, so use this only if your LTC is on channel 1 or 2. |
-| **MIDI Timecode** | Web MIDI (Chrome/Edge). Quarter-frame and full-frame (locate) messages are supported. |
-| **Internal clock** | A free-running clock with Run / Stop / Locate, for rehearsals without a timecode source. |
+| **Dante** (recommended) | The Show Notes **server** opens the audio device itself and listens on exactly the channel you pick, e.g. **channel 3 of Dante Virtual Soundcard**. Choose the device and channel and press **Listen**. You can do this from any screen, even a tablet. It remembers the choice and starts listening again whenever Show Notes restarts. It handles 24/25/29.97DF/30 fps, auto-detects the frame rate, and decodes reverse play. |
+| **Audio (browser, ch 1–2)** | The older method: the browser decodes LTC from an audio input. Browsers usually only expose the first **2 channels** of a device, so use this only if your LTC is on channel 1 or 2. |
+| **MIDI** | Web MIDI (Chrome/Edge). Quarter-frame and full-frame (locate) messages are supported. |
+| **Practice clock** | A free-running clock with Run / Stop / Locate, for rehearsals without a timecode source. |
 | **OSC** | Any device can push timecode: `/shownotes/tc "01:00:10:00" [fps]`. |
 
-> **macOS: allow microphone access once.** macOS asks before any app reads an audio input, Dante Virtual Soundcard included. The first time you press **Listen** with *LTC in (any channel)*, allow **Terminal** (or whatever started Show Notes) to use the microphone. If the level meter stays empty, turn it on in **System Settings → Privacy & Security → Microphone**, then restart Show Notes.
+> **macOS: allow microphone access once.** macOS asks before any app reads an audio input, Dante Virtual Soundcard included. The first time you press **Listen** with the *Dante* source, allow **Terminal** (or whatever started Show Notes) to use the microphone. If the level meter stays empty, turn it on in **System Settings → Privacy & Security → Microphone**, then restart Show Notes.
 >
 > **Channel count:** the channel list shows how many inputs the device has. If you need a channel that isn't listed, raise the device's channel count in Dante Virtual Soundcard's settings.
 
@@ -132,10 +132,10 @@ Pick the feed under **Program feed** (Operate view). Each screen chooses its own
 
 | Source | Use it for | Delay |
 |---|---|---|
-| **Capture device on this computer** | The computer with the DeckLink (Blackmagic WDM Capture), OBS Virtual Camera, or NDI Webcam. Only works when the page is opened at `http://localhost:3000/video` on that computer. | almost none |
-| **Network stream** | Every other screen: tablets, phones, backstage TVs. The address is shared, so a new screen opening `/video?view=display` plays it automatically. | ~0.3–1 s |
+| **OBS virtual camera / capture card** | The computer with the DeckLink (Blackmagic WDM Capture), OBS Virtual Camera, or NDI Webcam. Only works when the page is opened at `http://localhost:3000/video` on that computer. | almost none |
+| **OBS stream** | Every other screen: tablets, phones, backstage TVs. The address is shared, so a new screen opening `/video?view=display` plays it automatically. | ~0.3–1 s |
 
-**Network stream setup (OBS → MediaMTX):**
+**OBS stream setup (OBS → MediaMTX):**
 1. Download [MediaMTX](https://github.com/bluenviron/mediamtx/releases) and run `mediamtx.exe`. Allow it through Windows Firewall on private networks.
 2. In OBS, add your **Decklink Device** source. Then in Settings → Stream, choose **WHIP** with server `http://127.0.0.1:8889/program/whip` (OBS 30+), or **Custom** with `rtmp://127.0.0.1/program`.
 3. In Settings → Output: **H.264**, about 4–6 Mbps, **keyframe interval 1 s**, and **B-frames 0** (browsers can't play live WebRTC with B-frames).

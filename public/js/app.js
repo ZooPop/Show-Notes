@@ -576,7 +576,7 @@ async function startSource() {
     if (type === 'internal') {
       activeSource = new InternalClock({ ...common, fps: rate.fps, drop: rate.drop });
       activeSource.locate($('#clockLocate').value);
-      setSrcStatus({ text: 'Internal clock ready. Press Run.' });
+      setSrcStatus({ text: 'Practice clock ready. Press Run.' });
     } else if (type === 'ltc') {
       prefs.ltcDevice = $('#ltcDevice').value;
       prefs.ltcChannel = +$('#ltcChannel').value;

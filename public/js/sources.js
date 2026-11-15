@@ -5,10 +5,10 @@ import { LTCDecoder } from './ltc-decoder.js';
 
 export const SOURCE_TYPES = {
   none: 'Off',
-  server: 'LTC in (any channel)',
-  ltc: 'LTC in: browser (ch 1–2)',
-  mtc: 'MTC in (MIDI)',
-  internal: 'Internal clock (rehearsal)',
+  server: 'Dante',
+  ltc: 'Audio (browser, ch 1–2)',
+  mtc: 'MIDI',
+  internal: 'Practice clock',
 };
 
 export function secureContextNote() {
@@ -36,7 +36,7 @@ export class InternalClock {
     if (this.startedAt != null) return;
     this.startedAt = performance.now();
     this.timer = setInterval(() => this.emit(), 1000 / nominal(this.fps));
-    this.onStatus({ state: 'running', text: 'Internal clock running' });
+    this.onStatus({ state: 'running', text: 'Practice clock running' });
   }
   stop() {
     if (this.startedAt == null) return;
@@ -44,7 +44,7 @@ export class InternalClock {
     this.startedAt = null;
     clearInterval(this.timer);
     this.emit();
-    this.onStatus({ state: 'stopped', text: 'Internal clock stopped' });
+    this.onStatus({ state: 'stopped', text: 'Practice clock stopped' });
   }
   locate(tcString) {
     const tc = parseTC(tcString);

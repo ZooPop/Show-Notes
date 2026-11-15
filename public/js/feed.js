@@ -51,7 +51,7 @@ export class ProgramFeed {
 
   async startLocal(deviceId) {
     if (!window.isSecureContext) {
-      this.status('error', 'Capture devices only work on the computer itself (open Show Notes at http://localhost:3000/video). Other screens: use Network stream.');
+      this.status('error', 'Capture devices only work on the computer itself (open Show Notes at http://localhost:3000/video). Other screens: use OBS stream.');
       return;
     }
     try {
@@ -85,7 +85,7 @@ export class ProgramFeed {
       this.video.srcObject = null;
       this.video.src = url;
       this.video.play().catch(() => {});
-      this.video.onplaying = () => this.status('live', 'Live (HLS stream)');
+      this.video.onplaying = () => this.status('live', 'Live (OBS stream, HLS)');
       this.video.onerror = () => this.scheduleRetry('Stream unavailable');
       return this.status('connecting', 'Connecting to stream…');
     }
@@ -102,7 +102,7 @@ export class ProgramFeed {
       };
       pc.onconnectionstatechange = () => {
         if (pc !== this.pc) return;
-        if (pc.connectionState === 'connected') { clearTimeout(this.iceTimer); this.status('live', 'Live (network stream)'); }
+        if (pc.connectionState === 'connected') { clearTimeout(this.iceTimer); this.status('live', 'Live (OBS stream)'); }
         if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') this.scheduleRetry('Stream dropped');
       };
       await pc.setLocalDescription(await pc.createOffer());

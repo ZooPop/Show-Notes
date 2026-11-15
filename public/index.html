@@ -91,18 +91,18 @@
         <section class="panel video-only">
           <div class="panel-head"><h2>Program feed</h2></div>
           <div class="field">
-            <label for="feedSource">Source on this screen</label>
+            <label for="feedSource">Video</label>
             <select id="feedSource">
               <option value="off">Off</option>
-              <option value="network">Network stream (any screen)</option>
-              <option value="local">Capture device on this computer</option>
+              <option value="network">OBS stream</option>
+              <option value="local">OBS virtual camera / capture card</option>
             </select>
           </div>
           <div class="feed-opts" data-feed="network">
-            <div class="field"><label for="feedUrl">Stream address <small>(shared by every screen)</small></label><input id="feedUrl" placeholder="192.168.1.50:8889/program" /></div>
+            <div class="field"><label for="feedUrl">OBS stream address <small>(shared by every screen)</small></label><input id="feedUrl" placeholder="192.168.1.50:8889/program" /></div>
           </div>
           <div class="feed-opts" data-feed="local" hidden>
-            <div class="field"><label for="feedDevice">Capture device <small>(DeckLink / OBS Virtual Camera / NDI Webcam)</small></label><select id="feedDevice"><option value="">Default camera</option></select></div>
+            <div class="field"><label for="feedDevice">Camera / capture card <small>(OBS Virtual Camera, DeckLink, NDI Webcam)</small></label><select id="feedDevice"><option value="">Default camera</option></select></div>
           </div>
           <div class="row">
             <button id="feedStart" class="primary">Connect</button>
