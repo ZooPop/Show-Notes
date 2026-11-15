@@ -22,6 +22,7 @@ export function createShow(overrides = {}) {
       standbySeconds: 10, // warn this long before a timed cue
       locateThresholdSeconds: 2, // a timecode jump bigger than this counts as a locate
       oscTarget: '', // "host:port" for OSC output, e.g. "127.0.0.1:53000" for QLab
+      oscOnTimecode: true, // also send a cue's OSC when timecode fires it (turn off when the OSC drives the playback itself)
       feedUrl: '', // Video: program feed stream address shared by every screen (MediaMTX)
     },
     cues: [],

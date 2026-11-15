@@ -135,6 +135,19 @@ The server listens on UDP **53100** (`OSC_PORT`):
 
 **OSC out:** set *OSC output target* (e.g. `127.0.0.1:53000` for QLab). Then give a cue an OSC message such as `/cue/12/start`, and it is sent whenever that cue fires.
 
+### Driving Ableton arrangement markers
+
+Show Notes can jump Ableton to a song's arrangement marker (locator) and press Play whenever that song's cue fires, from GO, a song button, or Companion. Ableton's LTC then keeps Show Notes in sync.
+
+1. Install **[AbletonOSC](https://github.com/ideoforms/AbletonOSC)** (free) as described in its README: copy it into Ableton's *MIDI Remote Scripts* folder, then in Ableton → Settings → Link, Tempo & MIDI set a **Control Surface** slot to **AbletonOSC**. It listens on UDP **11000**.
+2. In Show Notes → Edit → Show settings, set **OSC output target** to `127.0.0.1:11000`, and **turn off** *Also send cue OSC when timecode fires a cue*. Otherwise a song that Ableton is already playing would be told to jump again.
+3. Give each song cue an **OSC on fire** message, one per line:
+   ```
+   /live/song/cue_point/jump 1
+   /live/song/start_playing
+   ```
+   The number is the marker's position in the arrangement (0 = first marker). You can use its name instead: `/live/song/cue_point/jump "Mary Did You Know"`.
+
 ## HTTP API
 
 * `GET /api/show`: the show JSON

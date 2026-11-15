@@ -83,7 +83,7 @@ function dispatch(action, origin = 'server') {
   if (state.log !== prev.log && state.log.length === 0) broadcast({ type: 'log', log: [] });
   for (const ev of result.events) {
     if (ev.entry) broadcast({ type: 'event', event: { type: ev.type, entry: ev.entry } });
-    if (ev.type === 'fired') sendCueOsc(ev.cue);
+    if (ev.type === 'fired') sendCueOsc(ev.cue, ev.entry);
   }
 }
 
@@ -230,9 +230,11 @@ function handleOsc(address, args) {
   }
 }
 
-function sendCueOsc(cue) {
-  const target = state.show.settings.oscTarget;
+function sendCueOsc(cue, entry) {
+  const { oscTarget: target, oscOnTimecode } = state.show.settings;
   if (!cue?.osc || !target) return;
+  // When playback (e.g. Ableton) is what fired the cue via timecode, don't echo a command back at it.
+  if (oscOnTimecode === false && String(entry?.source || '').startsWith('tc:')) return;
   const [host, port] = target.split(':');
   if (!host || !+port) return;
   for (const line of String(cue.osc).split(/[\n;]+/)) {

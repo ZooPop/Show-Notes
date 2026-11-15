@@ -279,6 +279,7 @@ function renderSettings() {
   set('#setRate', show.rate);
   set('#setStandby', show.settings.standbySeconds);
   set('#setOsc', show.settings.oscTarget || '');
+  $('#setOscTc').checked = show.settings.oscOnTimecode !== false;
   $('#setChase').checked = !!show.settings.chaseOnLocate;
 }
 
@@ -414,6 +415,7 @@ $('#setRate').addEventListener('change', (e) => dispatch({ type: 'show:update', 
 $('#setStandby').addEventListener('change', (e) => dispatch({ type: 'settings:update', patch: { standbySeconds: Math.max(0, +e.target.value || 0) } }));
 $('#setChase').addEventListener('change', (e) => dispatch({ type: 'settings:update', patch: { chaseOnLocate: e.target.checked } }));
 $('#setOsc').addEventListener('change', (e) => dispatch({ type: 'settings:update', patch: { oscTarget: e.target.value.trim() } }));
+$('#setOscTc').addEventListener('change', (e) => dispatch({ type: 'settings:update', patch: { oscOnTimecode: e.target.checked } }));
 
 // ---- import / export -----------------------------------------------------
 const CSV_COLS = ['number', 'name', 'leads', 'dept', 'tc', 'time', 'auto', 'notes', 'osc'];

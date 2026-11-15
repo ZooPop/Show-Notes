@@ -180,6 +180,8 @@
           <div class="field"><label for="setStandby">Standby warning (seconds)</label><input id="setStandby" type="number" min="0" step="1" /></div>
           <label class="toggle"><input type="checkbox" id="setChase" /> Chase cues when timecode jumps</label>
           <div class="field"><label for="setOsc">OSC output target <small>(host:port, e.g. QLab 127.0.0.1:53000)</small></label><input id="setOsc" placeholder="127.0.0.1:53000" /></div>
+          <label class="toggle"><input type="checkbox" id="setOscTc" /> Also send cue OSC when timecode fires a cue</label>
+          <p class="hint">Turn this off when the OSC drives your playback (e.g. Ableton markers), so a song that is already playing isn't told to jump again.</p>
           <div class="field inline" id="templateRow" hidden>
             <select id="templateSel"></select>
             <button id="templateBtn">Load</button>
