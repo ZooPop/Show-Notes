@@ -26,7 +26,7 @@ Web-based cue calling and tracking driven by **SMPTE timecode**. Show Notes alwa
 3. Double-click the launcher for your system:
    * macOS: `start-mac.command` (first time: right-click → Open, because it is an unsigned script)
    * Windows: `start-windows.bat`
-   * Linux: `./start-linux.sh`
+   * Linux: `./start-linux.sh` (see [Linux](#linux-omarchy-arch-ubuntu-fedora) below)
 
 It installs its one dependency the first time, starts the server and opens http://localhost:3000 with an example show loaded. To stop it, close the terminal window.
 
@@ -41,6 +41,30 @@ It installs its one dependency the first time, starts the server and opens http:
 **Test LTC without Dante:** Edit → Show settings → *LTC test generator* → Start. Then set the timecode source to **LTC**, choose an input that hears that output (a loopback device such as BlackHole on macOS or VB-Cable on Windows), and press Connect.
 
 **Test LTC from Ableton (or any DAW) on the same machine:** make an LTC file with `node tools/make-ltc-wav.js --start 00:59:50:00 --fps 30 --minutes 5`. Put it on an audio track with **Warp off**, and send Ableton's output to a loopback device (VB-Cable on Windows, BlackHole on macOS). In Show Notes, choose Source **LTC audio** with input **CABLE Output** / **BlackHole**, then Connect.
+
+## Linux (Omarchy, Arch, Ubuntu, Fedora)
+
+Show Notes runs fully on Linux, including the server-side LTC input and Show Notes · Video.
+
+1. **Node.js 18+**
+   - Omarchy / Arch: `sudo pacman -S nodejs npm`, or with mise: `mise use -g node@lts`
+   - Ubuntu / Debian: `sudo apt install nodejs npm`. Fedora: `sudo dnf install nodejs npm`
+2. **Run it:** `./start-linux.sh`. It installs dependencies, starts the server and opens your browser (Omarchy's default browser via `xdg-open`). Set `NO_BROWSER=1` to skip that, e.g. over SSH.
+3. **Firewall:** Omarchy turns on UFW, which blocks other screens. Allow Show Notes once:
+   `sudo ufw allow 3000/tcp && sudo ufw allow 53100/udp`
+4. **Start at login (optional):** `scripts/linux-service.sh install` runs Show Notes as a systemd user service. `status` / `uninstall` work too; logs: `journalctl --user -u show-notes -f`. For a show computer that should run it from boot, also run `loginctl enable-linger $USER`.
+
+**Audio (LTC in, any channel):** works with PipeWire (Omarchy's default), PulseAudio and ALSA. It needs `alsa-lib` and `libpulse`, which Omarchy already has; on a minimal Arch install run `sudo pacman -S alsa-lib libpulse pipewire-pulse`. No microphone permission prompt is needed on Linux.
+
+**Dante on Linux:** Audinate doesn't make Dante Virtual Soundcard for Linux. Options:
+- a **Dante USB interface** such as a Dante AVIO USB adapter. It shows up as a normal USB sound card; the AVIO USB has 2 channels, so put the LTC on 1 or 2.
+- a multichannel **Dante-to-USB interface**, which works with any channel via *LTC in (any channel)*.
+- **Inferno**, an unofficial open-source Dante implementation for Linux (experimental).
+- Or send **MTC** or **OSC timecode** to Show Notes over the network from the Ableton computer.
+
+**Browsers:** Chromium, Brave or Chrome are recommended. Firefox works for everything except *MTC in (MIDI)*, because it needs a separate site permission for Web MIDI.
+
+**Program feed (Show Notes · Video):** the *Network stream* source works on any Linux browser. For a *capture device*, Blackmagic's Desktop Video drivers for Linux work in **OBS**. Use OBS's Virtual Camera, which on Linux needs `v4l2loopback` (Arch: `sudo pacman -S v4l2loopback-dkms`), or stream from OBS to MediaMTX (Linux builds are available).
 
 ## Quick start (command line)
 
