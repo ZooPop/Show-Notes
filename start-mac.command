@@ -9,5 +9,12 @@ fi
 if [ ! -f node_modules/.package-lock.json ] || [ package.json -nt node_modules/.package-lock.json ]; then
   npm install --no-audit --no-fund
 fi
+# Audio library copied from a different computer (e.g. the folder came from Windows or Linux)?
+# Reinstall it for this one, so Dante / LTC input works.
+if [ -d node_modules/audify ] && ! node -e "require('audify')" >/dev/null 2>&1; then
+  echo "Reinstalling the audio library for this computer..."
+  rm -rf ./node_modules/audify
+  npm install --no-audit --no-fund
+fi
 (sleep 1.5; open "http://localhost:${PORT:-3000}") &
 node server.js
