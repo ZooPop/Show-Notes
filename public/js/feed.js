@@ -8,7 +8,13 @@ export function normalizeFeedUrl(input) {
   if (!u) return '';
   if (!/^https?:\/\//i.test(u)) u = 'http://' + u;
   u = u.replace(/\/+$/, '');
-  if (/\/whep$/i.test(u) || /\.m3u8(\?.*)?$/i.test(u)) return u;
+  const hls = /\.m3u8(\?.*)?$/i.test(u);
+  // No port typed? Use MediaMTX's defaults: 8889 for WebRTC, 8888 for HLS.
+  try {
+    const url = new URL(u);
+    if (!url.port) { url.port = hls ? '8888' : '8889'; u = url.toString().replace(/\/+$/, ''); }
+  } catch { /* leave as typed */ }
+  if (hls || /\/whep$/i.test(u)) return u;
   return u + '/whep';
 }
 
