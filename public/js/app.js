@@ -202,6 +202,7 @@ function fitDisplayBoxes() {
   const key = boxes.map((b) => [...b.children].filter((c) => !c.classList.contains('label')).map((c) => c.textContent).join('|') + (b.querySelector('.timeleft').hidden ? '' : 'T')).join('|') + `|${document.body.className}|${innerWidth}x${innerHeight}`;
   if (key === fitKey) return;
   fitKey = key;
+  document.body.style.setProperty('--hdr', `${$('.topbar').offsetHeight}px`); // phone layout fills the screen below the header
   for (const box of boxes) {
     box.style.setProperty('--fit', 1);
     if (!document.body.classList.contains('view-display')) continue;

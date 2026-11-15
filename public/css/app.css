@@ -315,3 +315,33 @@ body.video-in .side .go { flex: 0 0 auto; min-height: 110px; }
 .mtx-obs small { display: block; margin-top: 2px; }
 .mtx-obs code.copy { display: block; width: fit-content; max-width: 100%; margin: 3px 0 4px; white-space: normal; overflow-wrap: anywhere; }
 .mtx-obs small code.copy { display: inline-block; margin: 2px 2px; }
+
+/* ---- Video · Display on phones (portrait): PROGRAM on top, CURRENT | NEXT side by side below ---- */
+@media (max-width: 700px) and (orientation: portrait) {
+  body.video-in.view-display main { overflow: hidden; }
+  body.video-in.view-display .topbar { gap: 10px; padding: 6px 10px; }
+  body.video-in.view-display .pills { display: none !important; }
+  body.video-in.view-display .esc-hint { font-size: 0; gap: 0; padding: 6px 11px; flex: 0 0 auto; }
+  body.video-in.view-display .esc-hint kbd { display: none; }
+  body.video-in.view-display .esc-hint::before { content: '✕'; font-size: 15px; line-height: 1; }
+  body.video-in.view-display .show-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; text-align: right; }
+  body.video-in.view-display .band { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto minmax(0, 1fr);
+    height: calc(100dvh - var(--hdr, 56px)); gap: 8px; padding: 8px; }
+  body.video-in.view-display .pgm { grid-column: 1 / -1; grid-row: 1; align-self: start; }
+  body.video-in.view-display .clock { grid-column: 1 / -1; grid-row: 2; padding: 4px 10px; gap: 10px; }
+  body.video-in.view-display .tcbig { font-size: 6.5vw; }
+  body.video-in.view-display .tc-meta { font-size: 3vw; }
+  body.video-in.view-display .cuebox.current { grid-column: 1; grid-row: 3; }
+  body.video-in.view-display .cuebox.next { grid-column: 2; grid-row: 3; }
+  body.video-in.view-display .cuebox { padding: 8px 9px; }
+  body.video-in.view-display .cuebox .label { font-size: calc(var(--fit, 1) * 3vw); flex-wrap: wrap; gap: 4px; }
+  body.video-in.view-display .cuebox .num { font-size: calc(var(--fit, 1) * 13vw); }
+  body.video-in.view-display .cuebox .name { font-size: calc(var(--fit, 1) * 5.2vw); }
+  body.video-in.view-display .cuebox .leads { font-size: calc(var(--fit, 1) * 4vw); }
+  body.video-in.view-display .notes-full { font-size: calc(var(--fit, 1) * 4.2vw); }
+  body.video-in.view-display .timeleft { border-width: 2px; border-radius: 6px; padding: 1px 6px; }
+  body.video-in.view-display .timeleft .tl-label { font-size: calc(var(--fit, 1) * 2.4vw); }
+  body.video-in.view-display .timeleft .tl-val { font-size: calc(var(--fit, 1) * 5.5vw); }
+  body.video-in.view-display .pgm-tag { font-size: 11px; top: 6px; left: 8px; padding: 2px 8px; }
+  body.video-in.view-display .pgm-empty b { font-size: 16px; }
+}
