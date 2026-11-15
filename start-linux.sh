@@ -25,6 +25,8 @@ fi
 if command -v ufw >/dev/null 2>&1; then
   echo "Other screens can't connect? Let Show Notes through the firewall (once):"
   echo "  sudo ufw allow ${PORT}/tcp && sudo ufw allow ${OSC_PORT}/udp"
+  echo "Program feed (built-in MediaMTX):"
+  echo "  sudo ufw allow 8889/tcp && sudo ufw allow 8189/udp && sudo ufw allow 1935/tcp && sudo ufw allow 8888/tcp"
   echo
 fi
 

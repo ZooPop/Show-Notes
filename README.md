@@ -135,12 +135,17 @@ Pick the feed under **Program feed** (Operate view). Each screen chooses its own
 | **OBS virtual camera / capture card** | The computer with the DeckLink (Blackmagic WDM Capture), OBS Virtual Camera, or NDI Webcam. Only works when the page is opened at `http://localhost:3000/video` on that computer. | almost none |
 | **OBS stream** | Every other screen: tablets, phones, backstage TVs. The address is shared, so a new screen opening `/video?view=display` plays it automatically. | ~0.3–1 s |
 
-**OBS stream setup (OBS → MediaMTX):**
-1. Download [MediaMTX](https://github.com/bluenviron/mediamtx/releases) and run `mediamtx.exe`. Allow it through Windows Firewall on private networks.
-2. In OBS, add your **Decklink Device** source. Then in Settings → Stream, choose **WHIP** with server `http://127.0.0.1:8889/program/whip` (OBS 30+), or **Custom** with `rtmp://127.0.0.1/program`.
+**OBS stream setup (built-in MediaMTX):** Show Notes includes [MediaMTX](https://github.com/bluenviron/mediamtx), the free server that relays OBS to every screen. The first time Show Notes starts, it downloads MediaMTX into the `mediamtx/` folder. After that it starts and stops MediaMTX with Show Notes, so there's nothing to open by hand.
+1. Start Show Notes. When your computer asks, allow **mediamtx** through the firewall on **private** networks (Windows) or allow incoming connections (Mac).
+2. In OBS, add your **Decklink Device** source. Then in Settings → Stream, choose **WHIP** with the server shown under *Program feed* (e.g. `http://192.168.1.20:8889/program/whip`, OBS 30+). Or choose **Custom** with server `rtmp://192.168.1.20:1935` and stream key `program`. Use the Show Notes computer's address. OBS can run on the same computer or on another one.
 3. In Settings → Output: **H.264**, about 4–6 Mbps, **keyframe interval 1 s**, and **B-frames 0** (browsers can't play live WebRTC with B-frames).
-4. Start Streaming. In Show Notes · Video, set the stream address to `<that computer's IP>:8889/program` and press Connect.
-5. If other devices connect but show no picture, add `webrtcAdditionalHosts: [<that computer's IP>]` to `mediamtx.yml` and restart MediaMTX.
+4. Press **Start Streaming**. In Show Notes · Video, leave the stream address **blank** (or press **Use built-in**) and press Connect. The Program feed panel shows *Running · OBS is streaming* when it's working.
+
+Show Notes tells MediaMTX this computer's network addresses automatically, so other screens get the picture without editing `mediamtx.yml`.
+
+- **Firewall ports** on the Show Notes computer: TCP 8889 (WebRTC), UDP 8189 (video), TCP 1935 (RTMP from OBS), TCP 8888 (HLS).
+- **Already running MediaMTX yourself?** Show Notes sees it and uses it instead of starting another. To use a MediaMTX on a different computer, type its address (e.g. `192.168.1.210:8889/program`) in the stream address.
+- **No internet at the venue?** Copy `mediamtx.exe` (or `mediamtx` on Mac/Linux) and `mediamtx.yml` from the [releases page](https://github.com/bluenviron/mediamtx/releases) into the `mediamtx/` folder, and Show Notes will use them instead of downloading. Set `MEDIAMTX_PATH` to use a copy somewhere else, or `SHOWNOTES_MEDIAMTX=off` to turn the built-in one off.
 
 The video is always muted, so program audio never plays in the room.
 
@@ -183,6 +188,7 @@ Show Notes can jump Ableton to a song's arrangement marker (locator) and press P
 ```
 server.js                 HTTP + WebSocket + OSC server; owns the show state (data/show.json)
 lib/osc.js                OSC encode/decode
+lib/mediamtx.js           built-in MediaMTX: download, start/stop, "is OBS streaming?"
 public/js/engine.js       cue engine (pure reducer, shared by server and browser)
 public/js/timecode.js     SMPTE timecode maths (drop-frame aware)
 public/js/ltc-decoder.js  LTC biphase decoder + encoder
@@ -208,4 +214,6 @@ CSV import/export columns are `number,name,leads,dept,tc,time,auto,notes,osc`.
 | `PORT` | `3000` | HTTP/WebSocket port |
 | `OSC_PORT` | `53100` | UDP OSC input |
 | `SHOW_FILE` | `data/show.json` | Where the show is saved |
+| `SHOWNOTES_MEDIAMTX` | on | `off` stops Show Notes from starting its built-in MediaMTX |
+| `MEDIAMTX_PATH` | `mediamtx/mediamtx[.exe]` | Use a MediaMTX binary from somewhere else |
 | `HTTPS_KEY`, `HTTPS_CERT` | | Serve over HTTPS |

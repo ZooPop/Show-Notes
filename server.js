@@ -13,6 +13,7 @@ import { apply, createState, normalizeShow } from './public/js/engine.js';
 import { parseTC } from './public/js/timecode.js';
 import * as osc from './lib/osc.js';
 import { ServerLTCInput } from './lib/ltc-input.js';
+import { BuiltInMediaMTX } from './lib/mediamtx.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.PORT || 3000);
@@ -121,6 +122,10 @@ function handler(req, res) {
     });
     return;
   }
+  if (url.pathname === '/api/mediamtx' && req.method === 'GET') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify(mediamtx.status));
+  }
   if (url.pathname === '/api/logo' && req.method === 'GET') {
     // Optional organisation logo: data/private/logo.png (git-ignored) or data/logo.png.
     for (const f of [path.join(__dirname, 'data', 'private', 'logo.png'), path.join(__dirname, 'data', 'logo.png')]) {
@@ -192,6 +197,7 @@ wss.on('connection', (ws, req) => {
   ws.role = 'viewer';
   ws.send(JSON.stringify({ type: 'hello', id: ws.id, show: state.show, runtime: state.runtime, log: state.log }));
   ws.send(JSON.stringify({ type: 'ltcServer', status: ltcIn.status, settings: ltcIn.settings, available: ltcIn.available }));
+  ws.send(JSON.stringify({ type: 'mediamtx', status: mediamtx.status }));
   broadcast({ type: 'clients', clients: clientList() });
   ws.on('message', (raw) => {
     let msg;
@@ -253,6 +259,18 @@ const ltcIn = new ServerLTCInput({
   onLevel: (peak) => { const now = Date.now(); if (now - ltcLevelAt > 90) { ltcLevelAt = now; broadcast({ type: 'ltcLevel', peak }); } },
 });
 ltcIn.autoStart();
+
+// ---- Built-in MediaMTX (program feed): downloaded on first run, started and stopped with Show Notes ----
+const mediamtx = new BuiltInMediaMTX({
+  dir: path.join(__dirname, 'mediamtx'),
+  onStatus: (status) => {
+    broadcast({ type: 'mediamtx', status });
+    if (['running', 'external', 'error', 'downloading'].includes(status.state)) console.log(`MediaMTX: ${status.text}`);
+  },
+});
+mediamtx.start();
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => { mediamtx.stop(); process.exit(0); });
+process.on('exit', () => mediamtx.stop());
 
 server.listen(PORT, () => {
   const proto = useHttps ? 'https' : 'http';

@@ -94,6 +94,9 @@ function onServerMessage(msg) {
     case 'ltcServer':
       onLtcServer(msg);
       return;
+    case 'mediamtx':
+      onMediaMTX(msg.status);
+      return;
     case 'ltcLevel':
       $('#srvMeter').style.width = `${Math.min(100, msg.peak * 100)}%`;
       return;
@@ -717,9 +720,43 @@ const feed = new ProgramFeed($('#pgmVideo'), (state, text) => {
   pill.className = 'pill video-only ' + ({ live: 'ok', connecting: 'warn', error: 'bad' }[state] || '');
 });
 
+// ---- Built-in MediaMTX (runs on the Show Notes computer) ----
+let mtx = { state: 'off' };
+const mtxUp = () => mtx.state === 'running' || mtx.state === 'external';
+
+/** The shared address, or (when it's blank) the MediaMTX built into the Show Notes server. */
+function feedUrl() {
+  const typed = store.state.show.settings.feedUrl || '';
+  if (typed || !mtxUp()) return typed;
+  return `${location.hostname}:${mtx.port || 8889}/${mtx.path || 'program'}`;
+}
+
+function onMediaMTX(status) {
+  mtx = status || { state: 'off' };
+  if (!$('#mtxBox')) return;
+  const hosts = mtx.hosts || [];
+  const host = hosts.includes(location.hostname) ? location.hostname : hosts[0] || location.hostname;
+  const label = {
+    running: mtx.publishing ? 'Running · OBS is streaming' : 'Running · waiting for OBS',
+    external: mtx.publishing ? 'Using the MediaMTX already open · OBS is streaming' : 'Using the MediaMTX already open on this computer',
+    downloading: 'Downloading (first run only)…',
+    starting: 'Starting…',
+    disabled: 'Turned off',
+    off: 'Off',
+  }[mtx.state] || mtx.text;
+  $('#mtxState').textContent = label;
+  $('#mtxDot').className = 'mtx-dot ' + (mtxUp() ? (mtx.publishing ? 'ok' : 'warn') : mtx.state === 'error' ? 'bad' : '');
+  $('#mtxObs').hidden = !mtxUp() || !!mtx.publishing;
+  $('#mtxWhip').textContent = `http://${host}:${mtx.port || 8889}/${mtx.path || 'program'}/whip`;
+  $('#mtxRtmp').textContent = `rtmp://${host}:1935`;
+}
+$$('#mtxBox .copy').forEach((el) => el.addEventListener('click', () => {
+  navigator.clipboard?.writeText(el.textContent).then(() => { el.classList.add('copied'); setTimeout(() => el.classList.remove('copied'), 900); }).catch(() => {});
+}));
+
 function feedMode() {
-  // New screens follow the shared stream automatically once an address is set.
-  return prefs.feedSource || (store.state.show.settings.feedUrl ? 'network' : 'off');
+  // New screens follow the shared stream automatically once there is one.
+  return prefs.feedSource || (feedUrl() ? 'network' : 'off');
 }
 
 function showFeedOptions() {
@@ -740,7 +777,7 @@ async function refreshVideoDevices() {
 function startFeed() {
   const mode = feedMode();
   if (mode === 'local') feed.start('local', prefs.feedDevice);
-  else if (mode === 'network') feed.start('network', store.state.show.settings.feedUrl);
+  else if (mode === 'network') feed.start('network', feedUrl());
   else feed.stop();
 }
 
@@ -750,8 +787,8 @@ if (VIDEO_IN) {
   let lastFeedUrl = null;
   // Keep the shared address field in sync, and reconnect when someone changes it.
   setInterval(() => {
-    const url = store.state.show.settings.feedUrl || '';
-    if (document.activeElement !== $('#feedUrl')) $('#feedUrl').value = url;
+    if (document.activeElement !== $('#feedUrl')) $('#feedUrl').value = store.state.show.settings.feedUrl || '';
+    const url = feedUrl();
     if (lastFeedUrl === null) { lastFeedUrl = url; $('#feedSource').value = feedMode(); showFeedOptions(); startFeed(); return; }
     if (url !== lastFeedUrl) { lastFeedUrl = url; if (feedMode() === 'network') startFeed(); }
   }, 500);
@@ -761,9 +798,10 @@ if (VIDEO_IN) {
     prefs.feedSource = $('#feedSource').value;
     if (prefs.feedSource === 'local') prefs.feedDevice = $('#feedDevice').value;
     if (prefs.feedSource === 'network') {
-      const url = $('#feedUrl').value.trim();
-      if (url !== (store.state.show.settings.feedUrl || '')) dispatch({ type: 'settings:update', patch: { feedUrl: url } });
-      $('#feedStatus').textContent = url ? `Connecting to ${normalizeFeedUrl(url)}…` : 'Enter the stream address first.';
+      const typed = $('#feedUrl').value.trim();
+      if (typed !== (store.state.show.settings.feedUrl || '')) dispatch({ type: 'settings:update', patch: { feedUrl: typed } });
+      const url = typed || feedUrl();
+      $('#feedStatus').textContent = url ? `Connecting to ${normalizeFeedUrl(url)}…` : 'Enter the stream address first (the built-in MediaMTX is not running).';
       savePrefs();
       if (url) feed.start('network', url);
       return;
@@ -772,6 +810,7 @@ if (VIDEO_IN) {
     startFeed();
     if (prefs.feedSource === 'local') setTimeout(refreshVideoDevices, 1500); // names appear after permission
   });
+  $('#feedBuiltIn').addEventListener('click', () => { $('#feedUrl').value = ''; $('#feedSource').value = 'network'; showFeedOptions(); $('#feedStart').click(); });
   $('#feedStop').addEventListener('click', () => { prefs.feedSource = 'off'; savePrefs(); $('#feedSource').value = 'off'; showFeedOptions(); feed.stop(); });
 }
 

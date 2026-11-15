@@ -99,7 +99,15 @@
             </select>
           </div>
           <div class="feed-opts" data-feed="network">
-            <div class="field"><label for="feedUrl">OBS stream address <small>(shared by every screen)</small></label><input id="feedUrl" placeholder="192.168.1.50:8889/program" /></div>
+            <div class="field"><label for="feedUrl">OBS stream address <small>(shared by every screen)</small></label>
+              <div class="row tight"><input id="feedUrl" placeholder="Blank = built-in MediaMTX" /><button id="feedBuiltIn" title="Use the MediaMTX built into Show Notes">Use built-in</button></div></div>
+            <div class="mtx" id="mtxBox">
+              <div class="mtx-head"><span class="mtx-dot" id="mtxDot"></span><b>Built-in MediaMTX</b><span id="mtxState">Checking…</span></div>
+              <div class="mtx-obs" id="mtxObs" hidden>
+                In OBS → Settings → Stream, set <b>Service: WHIP</b> and <b>Server:</b><code class="copy" id="mtxWhip" title="Click to copy"></code>
+                <small>Or <b>Service: Custom</b>, Server <code class="copy" id="mtxRtmp" title="Click to copy"></code> and Stream Key <code>program</code>. Then press <b>Start Streaming</b>.</small>
+              </div>
+            </div>
           </div>
           <div class="feed-opts" data-feed="local" hidden>
             <div class="field"><label for="feedDevice">Camera / capture card <small>(OBS Virtual Camera, DeckLink, NDI Webcam)</small></label><select id="feedDevice"><option value="">Default camera</option></select></div>

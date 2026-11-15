@@ -295,3 +295,23 @@ body.video-in .side .go { flex: 0 0 auto; min-height: 110px; }
 .brand-stack.on .vswitch { justify-content: center; padding: 0 18px 0 3px; }
 .vswitch-text { padding-left: .18em; } /* balances the letter-spacing after the last letter */
 .vswitch-text { transform: translateY(2px); } /* caps sit high in their line box; drop to true optical center */
+
+/* Built-in MediaMTX status (Video page, Program feed) */
+.row.tight { margin: 0; }
+.row.tight > input { flex: 1 1 auto; min-width: 0; }
+.row.tight > button { flex: 0 0 auto; }
+.mtx { border: 1px solid var(--line, #30363d); border-radius: 8px; padding: 8px 10px; margin: 6px 0 4px; font-size: 12px; }
+.mtx-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mtx-head span:last-child { color: var(--dim); }
+.mtx-dot { width: 9px; height: 9px; min-width: 9px; aspect-ratio: 1; padding: 0; border-radius: 50%; background: #6e7681; flex: 0 0 auto; }
+.mtx-dot.ok { background: #3fb950; }
+.mtx-dot.warn { background: #d29922; }
+.mtx-dot.bad { background: #f85149; }
+.mtx-obs { margin-top: 6px; line-height: 1.6; color: var(--dim); }
+.mtx-obs b { color: inherit; font-weight: 600; }
+.mtx-obs code { text-transform: none; letter-spacing: 0; font-size: 12px; background: #0006; border: 1px solid #ffffff1a; border-radius: 4px; padding: 1px 5px; margin: 0 2px; color: #e6edf3; white-space: nowrap; }
+.mtx-obs code.copy { cursor: pointer; }
+.mtx-obs code.copied { border-color: #3fb950; }
+.mtx-obs small { display: block; margin-top: 2px; }
+.mtx-obs code.copy { display: block; width: fit-content; max-width: 100%; margin: 3px 0 4px; white-space: normal; overflow-wrap: anywhere; }
+.mtx-obs small code.copy { display: inline-block; margin: 2px 2px; }
