@@ -14,6 +14,7 @@ import { parseTC } from './public/js/timecode.js';
 import * as osc from './lib/osc.js';
 import { ServerLTCInput } from './lib/ltc-input.js';
 import { BuiltInMediaMTX } from './lib/mediamtx.js';
+import { VERSION } from './public/js/version.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.PORT || 3000);
@@ -274,7 +275,7 @@ process.on('exit', () => mediamtx.stop());
 
 server.listen(PORT, () => {
   const proto = useHttps ? 'https' : 'http';
-  console.log(`\nShow Notes running:`);
+  console.log(`\nShow Notes v${VERSION} running:`);
   console.log(`  ${proto}://localhost:${PORT}            (use this on the Dante/TC machine)`);
   for (const nets of Object.values(os.networkInterfaces())) {
     for (const n of nets || []) if (n.family === 'IPv4' && !n.internal) console.log(`  ${proto}://${n.address}:${PORT}`);

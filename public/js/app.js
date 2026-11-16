@@ -7,9 +7,11 @@ import {
   SOURCE_TYPES, InternalClock, LTCSource, MTCSource, LTCGenerator,
   listAudioInputs, listAudioOutputs, getMIDIAccess, secureContextNote,
 } from './sources.js';
+import { VERSION } from './version.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
+document.getElementById('appVersion').textContent = 'v' + VERSION;
 const LS_SHOW = 'shownotes.show';
 const LS_PREFS = 'shownotes.prefs';
 
