@@ -150,12 +150,6 @@
             <div class="meter"><div id="ltcMeter"></div></div>
           </div>
 
-          <div class="src-opts" data-src="mtc" hidden>
-            <div class="field">
-              <label for="mtcInput">MIDI input</label>
-              <select id="mtcInput"><option value="">All inputs</option></select>
-            </div>
-          </div>
 
           <div class="src-opts" data-src="internal" hidden>
             <div class="row">
@@ -168,12 +162,12 @@
             </div>
           </div>
 
-          <div class="row">
+          <div class="row" id="srcButtons">
             <button id="srcStart" class="primary">Listen</button>
             <button id="srcStop">Stop</button>
           </div>
           <p class="status" id="srcStatus">Not listening.</p>
-          <p class="hint">Show Notes follows the timecode you send it. It listens here, and every connected screen follows along. Show Notes never sends or controls timecode.</p>
+          <p class="hint" id="srcHint">Show Notes follows the timecode you send it. It listens here, and every connected screen follows along. Show Notes never sends or controls timecode.</p>
         </section>
 
         <section class="panel">

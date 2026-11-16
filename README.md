@@ -62,7 +62,7 @@ Show Notes runs fully on Linux, including the server-side LTC input and Show Not
 - **Inferno**, an unofficial open-source Dante implementation for Linux (experimental).
 - Or send **MTC** or **OSC timecode** to Show Notes over the network from the Ableton computer.
 
-**Browsers:** Chromium, Brave or Chrome are recommended. Firefox works for everything except the *MIDI* timecode source, because it needs a separate site permission for Web MIDI.
+**Browsers:** Chromium, Brave or Chrome are recommended. Firefox works too.
 
 **Program feed (Show Notes · Video):** the *OBS stream* source works on any Linux browser. For a *camera / capture card*, Blackmagic's Desktop Video drivers for Linux work in **OBS**. Use OBS's Virtual Camera, which on Linux needs `v4l2loopback` (Arch: `sudo pacman -S v4l2loopback-dkms`), or stream from OBS to MediaMTX (Linux builds are available).
 
@@ -99,7 +99,7 @@ Show Notes **follows** timecode; it never generates or controls it. Under **Time
 | --- | --- |
 | **Dante** (recommended) | The Show Notes **server** opens the audio device itself and listens on exactly the channel you pick, e.g. **channel 3 of Dante Virtual Soundcard**. Choose the device and channel and press **Listen**. You can do this from any screen, even a tablet. It remembers the choice and starts listening again whenever Show Notes restarts. It handles 24/25/29.97DF/30 fps, auto-detects the frame rate, and decodes reverse play. |
 | **Audio (browser, ch 1–2)** | The older method: the browser decodes LTC from an audio input. Browsers usually only expose the first **2 channels** of a device, so use this only if your LTC is on channel 1 or 2. |
-| **MIDI** | Web MIDI (Chrome/Edge). Quarter-frame and full-frame (locate) messages are supported. |
+| **Listen only** | For every other screen: just shows the timecode Show Notes is already receiving (e.g. Dante on the Show Notes computer). Nothing to set up, and it can't stop or change the timecode input. |
 | **Practice clock** | A free-running clock with Run / Stop / Locate, for rehearsals without a timecode source. |
 | **OSC** | Any device can push timecode: `/shownotes/tc "01:00:10:00" [fps]`. |
 

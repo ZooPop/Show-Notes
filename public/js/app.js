@@ -4,8 +4,8 @@
 import { apply, createState, normalizeShow, currentCue, nextCue, countdown, cueIndex, timeLeft, DEPARTMENTS } from './engine.js';
 import { RATES, rateById, parseTC, formatTC, formatDuration, tcSeconds, parseLength, formatClock } from './timecode.js';
 import {
-  SOURCE_TYPES, InternalClock, LTCSource, MTCSource, LTCGenerator,
-  listAudioInputs, listAudioOutputs, getMIDIAccess, secureContextNote,
+  SOURCE_TYPES, InternalClock, LTCSource, LTCGenerator,
+  listAudioInputs, listAudioOutputs, secureContextNote,
 } from './sources.js';
 import { VERSION } from './version.js';
 
@@ -15,7 +15,13 @@ document.getElementById('appVersion').textContent = 'v' + VERSION;
 const LS_SHOW = 'shownotes.show';
 const LS_PREFS = 'shownotes.prefs';
 
-const prefs = { name: '', source: 'none', ltcDevice: '', ltcChannel: 0, mtcInput: '', feedSource: '', feedDevice: '', ...JSON.parse(localStorage.getItem(LS_PREFS) || '{}') };
+// The page on the Show Notes computer itself starts on Dante; every other screen starts on Listen only.
+// Either can change it at any time.
+const ON_SHOW_COMPUTER = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(location.hostname);
+const prefs = { name: '', source: ON_SHOW_COMPUTER ? 'server' : 'watch', ltcDevice: '', ltcChannel: 0, feedSource: '', feedDevice: '', ...JSON.parse(localStorage.getItem(LS_PREFS) || '{}') };
+if (prefs.source === 'mtc') prefs.source = 'watch'; // MIDI input was replaced by Listen only
+if (!prefs.v12 && !ON_SHOW_COMPUTER && prefs.source === 'none') prefs.source = 'watch'; // screens set up before v0.12
+prefs.v12 = true;
 // Show Notes · Video lives at /video: same app, plus the program feed (layout B).
 const VIDEO_IN = /^\/video\/?$/.test(location.pathname);
 if (VIDEO_IN) { document.body.classList.add('video-in'); document.title = 'Show Notes · Video'; }
@@ -151,6 +157,7 @@ function renderBand() {
   const tcPill = $('#tcPill');
   tcPill.textContent = !tc ? 'No timecode' : stale ? 'TC stopped' : `TC ${tc.source.toUpperCase()}`;
   tcPill.className = 'pill ' + (!tc ? '' : stale ? 'warn' : 'ok');
+  renderWatchStatus();
 
   const cur = currentCue(state);
   $('#curNum').textContent = cur ? cur.number : '—';
@@ -522,7 +529,6 @@ $('#fileInput').addEventListener('change', async (e) => {
 
 // ---- timecode sources ----------------------------------------------------
 let activeSource = null;
-let midiAccess = null;
 
 $('#srcType').innerHTML = Object.entries(SOURCE_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
 $('#srcType').value = prefs.source;
@@ -533,11 +539,29 @@ function showSourceOptions() {
   const type = $('#srcType').value;
   $$('.src-opts').forEach((el) => (el.hidden = el.dataset.src !== type));
   if (type === 'server') refreshServerDevices();
-  const note = type === 'ltc' || type === 'mtc' ? secureContextNote() : '';
+  const note = type === 'ltc' ? secureContextNote() : '';
   $('#secureWarn').hidden = !note;
   $('#secureWarn').textContent = note;
   if (type === 'ltc') refreshAudioDevices();
-  if (type === 'mtc') refreshMidi();
+  // Listen only: nothing to start or stop. This screen just shows the timecode Show Notes is already receiving.
+  $('#srcButtons').hidden = type === 'watch';
+  $('#srcHint').hidden = type === 'watch';
+  if (type === 'watch') {
+    if (prefs.source !== 'watch') { stopSource(); prefs.source = 'watch'; savePrefs(); }
+    watchStatusKey = '';
+    renderWatchStatus();
+  }
+}
+
+let watchStatusKey = '';
+function renderWatchStatus() {
+  if ($('#srcType').value !== 'watch') return;
+  const tc = store.state.runtime.tc;
+  const stale = !tc || performance.now() - store.lastTcAt > 1000;
+  const text = !tc ? 'Listen only: waiting for timecode. It shows here as soon as the Show Notes computer receives it.'
+    : stale ? 'Listen only: timecode stopped.'
+    : 'Listen only: following the show timecode.';
+  if (text !== watchStatusKey) { watchStatusKey = text; setSrcStatus({ text }); }
 }
 
 async function refreshAudioDevices() {
@@ -548,17 +572,6 @@ async function refreshAudioDevices() {
   // Prefer a Dante device when nothing is chosen yet.
   const dante = devices.find((d) => /dante/i.test(d.label));
   sel.value = devices.some((d) => d.deviceId === prefs.ltcDevice) ? prefs.ltcDevice : dante ? dante.deviceId : '';
-}
-
-async function refreshMidi() {
-  try {
-    midiAccess = midiAccess || (await getMIDIAccess());
-    const sel = $('#mtcInput');
-    sel.innerHTML = '<option value="">All inputs</option>' + [...midiAccess.inputs.values()].map((i) => `<option value="${i.id}">${esc(i.name)}</option>`).join('');
-    sel.value = prefs.mtcInput;
-  } catch (e) {
-    setSrcStatus({ state: 'error', text: e.message });
-  }
 }
 
 function setSrcStatus(s) {
@@ -575,6 +588,7 @@ async function startSource() {
   prefs.source = type;
   savePrefs();
   if (type === 'server') return startServerLTC();
+  if (type === 'watch') return;
   if (type !== 'none' && serverLtc.status?.state && serverLtc.status.state !== 'off') stopServerLTC(); // one timecode input at a time
   const rate = rateById(store.state.show.rate);
   const common = { onTC: sendTC, onStatus: setSrcStatus };
@@ -600,12 +614,6 @@ async function startSource() {
       });
       await activeSource.start();
       refreshAudioDevices(); // labels become available after permission is granted
-    } else if (type === 'mtc') {
-      midiAccess = midiAccess || (await getMIDIAccess());
-      prefs.mtcInput = $('#mtcInput').value;
-      savePrefs();
-      activeSource = new MTCSource({ ...common, access: midiAccess, inputId: prefs.mtcInput });
-      activeSource.start();
     } else {
       setSrcStatus({ text: 'Not listening.' });
     }
@@ -834,6 +842,7 @@ const serverLtc = { status: null, settings: null, available: false, devices: [] 
 
 function onLtcServer(msg) {
   Object.assign(serverLtc, { status: msg.status, settings: msg.settings, available: msg.available });
+  if ($('#srcType').value === 'watch') return;
   if ($('#srcType').value === 'server') setSrcStatus(msg.status);
   if (msg.status?.state === 'off') $('#srvMeter').style.width = '0';
 }

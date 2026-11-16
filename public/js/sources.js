@@ -7,7 +7,7 @@ export const SOURCE_TYPES = {
   none: 'Off',
   server: 'Dante',
   ltc: 'Audio (browser, ch 1–2)',
-  mtc: 'MIDI',
+  watch: 'Listen only',
   internal: 'Practice clock',
 };
 
