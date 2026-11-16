@@ -350,3 +350,29 @@ body.video-in .side .go { flex: 0 0 auto; min-height: 110px; }
 .brand-ver { position: absolute; left: 100%; margin-left: .35em; white-space: nowrap; font: inherit; letter-spacing: inherit; color: #8a94a3; }
 .brand-stack { margin-right: 3.6em; }
 #srcButtons[hidden], #srcHint[hidden] { display: none !important; }
+
+/* ---- Phones: locked to Display, with the full show listed below (scroll down) ---- */
+.phone-list[hidden] { display: none !important; }
+body.phone .esc-hint, body.phone .topbar .views, body.phone .pills { display: none !important; }
+body.phone .topbar { gap: 10px; padding: 6px 10px; }
+body.phone .show-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; text-align: right; }
+body.phone main, body.phone.video-in.view-display main { overflow: visible; }
+/* leave the "Full show" heading peeking at the bottom so people know to scroll */
+body.phone.view-display .band, body.phone.video-in.view-display .band { height: calc(100dvh - var(--hdr, 56px) - 34px); }
+.phone-list { padding: 4px 8px 40px; }
+.phone-list-head { font-size: 13px; letter-spacing: .1em; color: var(--dim); margin: 0 4px 8px; display: flex; align-items: center; gap: 6px; }
+.phone-list-head::before { content: '▼'; font-size: 10px; }
+#phoneCues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+#phoneCues li { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 8px; padding: 9px 11px; }
+#phoneCues li.done { opacity: .5; }
+#phoneCues li.current { border-color: var(--live); background: #2a1416; }
+#phoneCues li.next { border-color: var(--standby); background: #2a2412; }
+.pc-top { display: flex; align-items: baseline; gap: 10px; }
+.pc-num { font-family: var(--mono); font-weight: 800; font-size: 18px; min-width: 2.4em; }
+.pc-name { font-weight: 800; font-size: 16px; flex: 1; }
+.pc-tag { font-size: 10px; font-weight: 800; letter-spacing: .1em; padding: 2px 6px; border-radius: 4px; background: var(--live); color: #fff; }
+li.next .pc-tag { background: var(--standby); color: #111; }
+.pc-meta { font-family: var(--mono); font-size: 12px; color: var(--dim); margin: 2px 0 0 calc(2.4em * 18 / 12 + 10px); }
+.pc-leads { font-size: 14px; font-weight: 700; color: #ffd2cf; margin-top: 5px; }
+li.next .pc-leads { color: #f6e7b0; }
+.pc-notes { font-size: 14px; color: #f6e7b0; white-space: pre-wrap; margin-top: 4px; }

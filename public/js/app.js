@@ -138,7 +138,7 @@ let selectedId = null;
 function render(prev = {}) {
   const { show, runtime, log } = store.state;
   if (!prev.show || prev.show !== show) renderSettings();
-  if (!prev.show || prev.show !== show || prev.runtime?.currentCueId !== runtime.currentCueId) renderTable();
+  if (!prev.show || prev.show !== show || prev.runtime?.currentCueId !== runtime.currentCueId) { renderTable(); if (PHONE) renderPhoneList(); }
   if (!prev.log || prev.log !== log) renderLog();
   renderBand();
 }
@@ -228,6 +228,21 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+function renderPhoneList() {
+  const { show, runtime } = store.state;
+  const curIdx = cueIndex(show, runtime.currentCueId);
+  $('#phoneCues').innerHTML = show.cues.map((c, i) => {
+    const cls = i < curIdx ? 'done' : i === curIdx ? 'current' : i === curIdx + 1 ? 'next' : '';
+    const tag = i === curIdx ? '<span class="pc-tag">Current</span>' : i === curIdx + 1 ? '<span class="pc-tag">Next</span>' : '';
+    return `<li class="${cls}">
+      <div class="pc-top"><span class="pc-num">${esc(c.number)}</span><span class="pc-name">${esc(c.name)}</span>${tag}</div>
+      ${c.tc || c.time ? `<div class="pc-meta">${c.tc ? esc(c.tc) : ''}${c.tc && c.time ? ' · ' : ''}${c.time ? esc(c.time) : ''}</div>` : ''}
+      ${c.leads ? `<div class="pc-leads"><span class="leads-label">Leads</span> ${esc(c.leads)}</div>` : ''}
+      ${c.notes ? `<div class="pc-notes">${esc(c.notes)}</div>` : ''}
+    </li>`;
+  }).join('');
+}
+
 function renderTable() {
   const { show, runtime } = store.state;
   const curIdx = cueIndex(show, runtime.currentCueId);
@@ -311,7 +326,12 @@ function flashGo() {
 setInterval(renderBand, 250);
 
 // ---- views ---------------------------------------------------------------
+// Phones are locked to the Display view; the full show is listed below it (scroll down).
+const PHONE = matchMedia('(pointer: coarse) and (max-width: 700px), (pointer: coarse) and (max-height: 500px)').matches;
+if (PHONE) { document.body.classList.add('phone'); $('#phoneList').hidden = false; }
+
 function setView(view) {
+  if (PHONE) view = 'display';
   document.body.classList.remove('view-operate', 'view-edit', 'view-display');
   document.body.classList.add(`view-${view}`);
   $$('.views button').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
