@@ -32,7 +32,30 @@ export class ProgramFeed {
     this.retry = null;
     this.mode = 'off';
     this.target = '';
-    video.muted = true; // picture only: never feed program audio back into the room
+    this.wantSound = false; // every screen starts muted; the 🔇/🔊 button turns program audio on for that screen
+    this.onAudio = null; // called with true/false when the stream has (or loses) an audio track
+    video.muted = true;
+  }
+
+  /** Turn program audio on or off on this screen. Must be called from a click/tap (browser rule). */
+  setSound(on) {
+    this.wantSound = !!on;
+    this.video.muted = !this.wantSound;
+    if (this.wantSound) this.video.play().catch(() => {});
+    return this.wantSound;
+  }
+
+  /** Start playback, keeping the chosen sound setting; fall back to muted if the browser won't allow sound yet. */
+  playVideo() {
+    this.video.muted = !this.wantSound;
+    this.video.play().catch(() => {
+      if (!this.video.muted) { this.wantSound = false; this.video.muted = true; this.video.play().catch(() => {}); this.onAudio?.(this.hasAudio, false); }
+    });
+  }
+
+  setHasAudio(has) {
+    this.hasAudio = has;
+    this.onAudio?.(has, this.wantSound);
   }
 
   status(state, text) {
@@ -44,6 +67,7 @@ export class ProgramFeed {
     this.stop(true);
     this.mode = mode;
     this.target = target;
+    this.setHasAudio(false);
     if (mode === 'local') return this.startLocal(target);
     if (mode === 'network') return this.startNetwork(target);
     this.status('off', 'Program feed off.');
@@ -66,7 +90,7 @@ export class ProgramFeed {
         },
       });
       this.video.srcObject = this.stream;
-      await this.video.play().catch(() => {});
+      this.playVideo();
       const s = this.stream.getVideoTracks()[0]?.getSettings() || {};
       this.status('live', `Live from capture device${s.width ? ` · ${s.width}×${s.height}` : ''}`);
     } catch (e) {
@@ -84,8 +108,8 @@ export class ProgramFeed {
       }
       this.video.srcObject = null;
       this.video.src = url;
-      this.video.play().catch(() => {});
-      this.video.onplaying = () => this.status('live', 'Live (OBS stream, HLS)');
+      this.playVideo();
+      this.video.onplaying = () => { this.status('live', 'Live (OBS stream, HLS)'); this.setHasAudio(true); };
       this.video.onerror = () => this.scheduleRetry('Stream unavailable');
       return this.status('connecting', 'Connecting to stream…');
     }
@@ -95,10 +119,12 @@ export class ProgramFeed {
       this.pc = pc;
       pc.addTransceiver('video', { direction: 'recvonly' });
       pc.addTransceiver('audio', { direction: 'recvonly' });
+      const remote = new MediaStream();
       pc.ontrack = (e) => {
-        if (e.track.kind !== 'video') return;
-        this.video.srcObject = e.streams[0] || new MediaStream([e.track]);
-        this.video.play().catch(() => {});
+        remote.addTrack(e.track); // picture and program audio
+        if (this.video.srcObject !== remote) this.video.srcObject = remote;
+        if (e.track.kind === 'audio') this.setHasAudio(true);
+        this.playVideo();
       };
       pc.onconnectionstatechange = () => {
         if (pc !== this.pc) return;
@@ -151,6 +177,7 @@ export class ProgramFeed {
     this.video.removeAttribute('src');
     this.video.srcObject = null;
     this.mode = 'off';
+    this.setHasAudio(false);
     if (!silent) this.status('off', 'Program feed off.');
   }
 }

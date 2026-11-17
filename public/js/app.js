@@ -742,6 +742,15 @@ $('#escHint').addEventListener('click', () => setView('operate'));
 // ---- Video: program feed -------------------------------------------------
 import { ProgramFeed, listVideoInputs, normalizeFeedUrl } from './feed.js';
 
+// Program audio: muted on every screen until someone taps 🔇 on that screen.
+function showSoundButton(hasAudio, on) {
+  const btn = $('#pgmSound');
+  btn.hidden = !hasAudio;
+  btn.classList.toggle('on', !!on);
+  btn.textContent = on ? '🔊 Sound on' : '🔇 Sound off';
+}
+$('#pgmSound').addEventListener('click', () => showSoundButton(true, feed.setSound(!feed.wantSound)));
+
 const feed = new ProgramFeed($('#pgmVideo'), (state, text) => {
   $('#feedStatus').textContent = text;
   $('#pgmEmpty').hidden = state === 'live';
@@ -750,6 +759,7 @@ const feed = new ProgramFeed($('#pgmVideo'), (state, text) => {
   pill.textContent = { live: 'PGM LIVE', connecting: 'PGM…', error: 'PGM ERROR', off: 'No feed' }[state] || state;
   pill.className = 'pill video-only ' + ({ live: 'ok', connecting: 'warn', error: 'bad' }[state] || '');
 });
+feed.onAudio = showSoundButton;
 
 // ---- Built-in MediaMTX (runs on the Show Notes computer) ----
 let mtx = { state: 'off' };

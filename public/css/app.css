@@ -376,3 +376,11 @@ li.next .pc-tag { background: var(--standby); color: #111; }
 .pc-leads { font-size: 14px; font-weight: 700; color: #ffd2cf; margin-top: 5px; }
 li.next .pc-leads { color: #f6e7b0; }
 .pc-notes { font-size: 14px; color: #f6e7b0; white-space: pre-wrap; margin-top: 4px; }
+
+/* Program audio toggle (top-right of the program video) */
+.pgm-sound { position: absolute; top: 8px; right: 10px; z-index: 3; font-size: 13px; font-weight: 800; letter-spacing: .08em;
+  padding: 6px 12px; border-radius: 99px; background: #000a; color: #c8ced6; border: 1px solid #ffffff40; cursor: pointer; }
+.pgm-sound:hover { border-color: #fff; color: #fff; }
+.pgm-sound.on { background: var(--go); border-color: var(--go); color: #fff; }
+.pgm-sound[hidden] { display: none !important; }
+body.phone .pgm-sound { font-size: 12px; padding: 7px 12px; top: 6px; right: 8px; }

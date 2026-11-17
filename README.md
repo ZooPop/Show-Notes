@@ -147,7 +147,7 @@ Show Notes tells MediaMTX this computer's network addresses automatically, so ot
 - **Already running MediaMTX yourself?** Show Notes sees it and uses it instead of starting another. To use a MediaMTX on a different computer, type its address (e.g. `192.168.1.210:8889/program`) in the stream address.
 - **No internet at the venue?** Copy `mediamtx.exe` (or `mediamtx` on Mac/Linux) and `mediamtx.yml` from the [releases page](https://github.com/bluenviron/mediamtx/releases) into the `mediamtx/` folder, and Show Notes will use them instead of downloading. Set `MEDIAMTX_PATH` to use a copy somewhere else, or `SHOWNOTES_MEDIAMTX=off` to turn the built-in one off.
 
-The video is always muted, so program audio never plays in the room.
+The video starts muted on every screen. Tap **🔇 Sound off** on the program video to hear program audio on that screen (needs OBS streaming with **WHIP**; RTMP audio does not play in browsers). It mutes again each time the page loads.
 
 ## OSC
 
