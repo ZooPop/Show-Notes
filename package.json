@@ -1,6 +1,6 @@
 {
   "name": "show-notes",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "Web-based cue calling and tracking driven by SMPTE timecode (LTC over Dante, MTC, OSC).",
   "type": "module",
   "main": "server.js",
