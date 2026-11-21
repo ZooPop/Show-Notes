@@ -160,6 +160,7 @@ The server listens on UDP **53100** (`OSC_PORT`):
 | `/shownotes/goto` | cue number | Fire that cue |
 | `/shownotes/load` | cue number | Make it current without firing |
 | `/shownotes/reset` | | Back to top |
+| `/shownotes/stop` | | Stop Ableton: sends `/live/song/stop_playing` to the OSC output target |
 | `/shownotes/tc` | `"HH:MM:SS:FF"` [fps] | Push timecode |
 
 **OSC out:** set *OSC output target* (e.g. `127.0.0.1:53000` for QLab). Then give a cue an OSC message such as `/cue/12/start`, and it is sent whenever that cue fires.

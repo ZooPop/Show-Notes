@@ -228,6 +228,7 @@ function handleOsc(address, args) {
   if (a === '/shownotes/go') dispatch({ type: 'go' }, 'osc');
   else if (a === '/shownotes/back') dispatch({ type: 'back' }, 'osc');
   else if (a === '/shownotes/reset') dispatch({ type: 'reset' }, 'osc');
+  else if (a === '/shownotes/stop') sendOscToTarget('/live/song/stop_playing'); // stop Ableton (AbletonOSC) at the OSC output target
   else if (a === '/shownotes/goto') dispatch({ type: 'goto', number: String(args[0]) }, 'osc');
   else if (a === '/shownotes/load') dispatch({ type: 'goto', number: String(args[0]), fire: false }, 'osc');
   else if (a === '/shownotes/tc') {
@@ -235,6 +236,13 @@ function handleOsc(address, args) {
     const tc = parseTC(args[0]);
     if (tc) dispatch({ type: 'timecode', tc: { ...tc, fps: Number(args[1]) || undefined, source: 'osc' } }, 'osc');
   }
+}
+
+/** Send one OSC message to the show's OSC output target (e.g. Ableton on 127.0.0.1:11000). */
+function sendOscToTarget(address, args = []) {
+  const [host, port] = String(state.show.settings.oscTarget || '').split(':');
+  if (!host || !+port) return console.warn(`OSC: no OSC output target set, so ${address} was not sent`);
+  oscSocket.send(osc.encode(address, args), +port, host);
 }
 
 function sendCueOsc(cue, entry) {
