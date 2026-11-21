@@ -149,6 +149,15 @@ Show Notes tells MediaMTX this computer's network addresses automatically, so ot
 
 The video starts muted on every screen. Tap **🔇 Sound off** on the program video to hear program audio on that screen (needs OBS streaming with **WHIP**; RTMP audio does not play in browsers). It mutes again each time the page loads.
 
+## Stream Deck (Companion profile)
+
+`companion/show-notes-stream-deck.companionconfig` is a ready-made Stream Deck page for **Bitfocus Companion 5.1+** (made for a Stream Deck XL, 8×4):
+
+- **GO**, **STOP** (stops Ableton), **SONG 1 … 11 and 11.5** (each *cues up* that song: Ableton jumps to its marker and waits for GO)
+- **RESET** needs a **5-second hold**: it counts 1–4, turns green with RESET ✓ when the show resets, and returns to normal 2 seconds later. Letting go early cancels it.
+
+To use it: in Companion go to **Import / Export → Import**, pick the file, and import **page 1** into the page you want. It adds a **SHOW_NOTES** connection (Generic OSC to `127.0.0.1:53100`). If Companion runs on a different computer from Show Notes, change that connection's IP to the Show Notes computer.
+
 ## OSC
 
 The server listens on UDP **53100** (`OSC_PORT`):
