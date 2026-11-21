@@ -384,3 +384,12 @@ li.next .pc-leads { color: #f6e7b0; }
 .pgm-sound.on { background: var(--go); border-color: var(--go); color: #fff; }
 .pgm-sound[hidden] { display: none !important; }
 body.phone .pgm-sound { font-size: 12px; padding: 7px 12px; top: 6px; right: 8px; }
+
+/* TIME LEFT: bigger in Operate, a little bigger on Display */
+.timeleft { padding: 4px 14px; border-radius: 10px; }
+.timeleft .tl-label { font-size: 13px; }
+.timeleft .tl-val { font-size: 44px; }
+body.view-display .timeleft .tl-label { font-size: calc(var(--fit, 1) * 1.8vw); }
+body.view-display .timeleft .tl-val { font-size: calc(var(--fit, 1) * 5.6vw); }
+body.video-in.view-display .timeleft .tl-label { font-size: calc(var(--fit, 1) * 1.15vw); }
+body.video-in.view-display .timeleft .tl-val { font-size: calc(var(--fit, 1) * 3.2vw); }
