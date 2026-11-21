@@ -160,6 +160,7 @@ The server listens on UDP **53100** (`OSC_PORT`):
 | `/shownotes/goto` | cue number | Fire that cue |
 | `/shownotes/load` | cue number | Make it current without firing |
 | `/shownotes/reset` | | Back to top |
+| `/shownotes/cue` | cue number | Cue it up: Ableton jumps to its marker without playing, every screen shows it as NEXT, and GO plays it |
 | `/shownotes/stop` | | Stop Ableton: sends `/live/song/stop_playing` to the OSC output target |
 | `/shownotes/tc` | `"HH:MM:SS:FF"` [fps] | Push timecode |
 

@@ -86,6 +86,7 @@ function dispatch(action, origin = 'server') {
   for (const ev of result.events) {
     if (ev.entry) broadcast({ type: 'event', event: { type: ev.type, entry: ev.entry } });
     if (ev.type === 'fired') sendCueOsc(ev.cue, ev.entry);
+    if (ev.type === 'armed') sendCueJump(ev.cue);
   }
 }
 
@@ -228,6 +229,7 @@ function handleOsc(address, args) {
   if (a === '/shownotes/go') dispatch({ type: 'go' }, 'osc');
   else if (a === '/shownotes/back') dispatch({ type: 'back' }, 'osc');
   else if (a === '/shownotes/reset') dispatch({ type: 'reset' }, 'osc');
+  else if (a === '/shownotes/cue') dispatch({ type: 'cue', number: String(args[0]) }, 'osc'); // cue up: Ableton jumps to the marker, GO plays it
   else if (a === '/shownotes/stop') sendOscToTarget('/live/song/stop_playing'); // stop Ableton (AbletonOSC) at the OSC output target
   else if (a === '/shownotes/goto') dispatch({ type: 'goto', number: String(args[0]) }, 'osc');
   else if (a === '/shownotes/load') dispatch({ type: 'goto', number: String(args[0]), fire: false }, 'osc');
@@ -243,6 +245,15 @@ function sendOscToTarget(address, args = []) {
   const [host, port] = String(state.show.settings.oscTarget || '').split(':');
   if (!host || !+port) return console.warn(`OSC: no OSC output target set, so ${address} was not sent`);
   oscSocket.send(osc.encode(address, args), +port, host);
+}
+
+/** Cue up: send only the marker jump from the cue's OSC (no start_playing), so Ableton waits for GO. */
+function sendCueJump(cue) {
+  for (const line of String(cue?.osc || '').split(/[\n;]+/)) {
+    if (!/cue_point\/jump/i.test(line)) continue;
+    const msg = osc.parseMessageString(line);
+    if (msg) sendOscToTarget(msg.address, msg.args);
+  }
 }
 
 function sendCueOsc(cue, entry) {

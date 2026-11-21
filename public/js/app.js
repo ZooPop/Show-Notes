@@ -138,7 +138,7 @@ let selectedId = null;
 function render(prev = {}) {
   const { show, runtime, log } = store.state;
   if (!prev.show || prev.show !== show) renderSettings();
-  if (!prev.show || prev.show !== show || prev.runtime?.currentCueId !== runtime.currentCueId) { renderTable(); if (PHONE) renderPhoneList(); }
+  if (!prev.show || prev.show !== show || prev.runtime?.currentCueId !== runtime.currentCueId || prev.runtime?.armedCueId !== runtime.armedCueId) { renderTable(); if (PHONE) renderPhoneList(); }
   if (!prev.log || prev.log !== log) renderLog();
   renderBand();
 }
@@ -231,9 +231,10 @@ function esc(s) {
 function renderPhoneList() {
   const { show, runtime } = store.state;
   const curIdx = cueIndex(show, runtime.currentCueId);
+  const nextIdx = cueIndex(show, nextCue(store.state)?.id);
   $('#phoneCues').innerHTML = show.cues.map((c, i) => {
-    const cls = i < curIdx ? 'done' : i === curIdx ? 'current' : i === curIdx + 1 ? 'next' : '';
-    const tag = i === curIdx ? '<span class="pc-tag">Current</span>' : i === curIdx + 1 ? '<span class="pc-tag">Next</span>' : '';
+    const cls = i === curIdx ? 'current' : i === nextIdx ? 'next' : i < curIdx ? 'done' : '';
+    const tag = i === curIdx ? '<span class="pc-tag">Current</span>' : i === nextIdx ? '<span class="pc-tag">Next</span>' : '';
     return `<li class="${cls}">
       <div class="pc-top"><span class="pc-num">${esc(c.number)}</span><span class="pc-name">${esc(c.name)}</span>${tag}</div>
       ${c.tc || c.time ? `<div class="pc-meta">${c.tc ? esc(c.tc) : ''}${c.tc && c.time ? ' · ' : ''}${c.time ? esc(c.time) : ''}</div>` : ''}
@@ -246,10 +247,11 @@ function renderPhoneList() {
 function renderTable() {
   const { show, runtime } = store.state;
   const curIdx = cueIndex(show, runtime.currentCueId);
+  const nextIdx = cueIndex(show, nextCue(store.state)?.id);
   const body = $('#cueTable tbody');
   body.innerHTML = show.cues
     .map((c, i) => {
-      const cls = [i < curIdx ? 'done' : '', i === curIdx ? 'current' : '', i === curIdx + 1 ? 'next' : '', c.id === selectedId ? 'selected' : '']
+      const cls = [i < curIdx && i !== nextIdx ? 'done' : '', i === curIdx ? 'current' : '', i === nextIdx ? 'next' : '', c.id === selectedId ? 'selected' : '']
         .filter(Boolean).join(' ');
       return `<tr data-id="${c.id}" class="${cls}">
         <td class="num">${esc(c.number)}</td>
@@ -292,7 +294,7 @@ function renderLog() {
   $('#log').innerHTML = items
     .map((e) => {
       const time = new Date(e.at).toLocaleTimeString([], { hour12: false });
-      const label = e.kind === 'reset' ? 'Reset' : `${e.kind === 'fire' ? 'GO' : e.kind} ${esc(e.number)} ${esc(e.name)}`;
+      const label = e.kind === 'reset' ? 'Reset' : `${e.kind === 'fire' ? 'GO' : e.kind === 'cue' ? 'Cued' : e.kind} ${esc(e.number)} ${esc(e.name)}`;
       return `<li class="k-${e.kind}"><span class="t">${time}</span><span class="tc">${esc(e.tc)}</span><span>${label}<small> · ${esc(e.source)}</small></span></li>`;
     })
     .join('');

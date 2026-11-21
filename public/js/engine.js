@@ -47,7 +47,7 @@ export function createCue(fields = {}) {
 }
 
 export function createRuntime() {
-  return { currentCueId: null, currentAt: null, lastGo: null, tc: null };
+  return { currentCueId: null, currentAt: null, lastGo: null, tc: null, armedCueId: null };
 }
 
 export function createState(show = createShow()) {
@@ -70,6 +70,9 @@ export function currentCue(state) {
 }
 
 export function nextCue(state) {
+  // A cue that was "cued up" (e.g. from the Stream Deck) is next until it fires or something else moves the show.
+  const armed = state.runtime.armedCueId && state.show.cues.find((c) => c.id === state.runtime.armedCueId);
+  if (armed) return armed;
   const i = cueIndex(state.show, state.runtime.currentCueId);
   return state.show.cues[i + 1] || null;
 }
@@ -106,9 +109,18 @@ function reduce(state, action, events) {
 
   switch (action.type) {
     case 'go': {
-      const i = cueIndex(show, runtime.currentCueId);
-      const cue = show.cues[i + 1];
+      const cue = nextCue(state);
       return cue ? fire(state, cue, action.source || 'manual', at, events) : state;
+    }
+    case 'cue': {
+      // Cue up (arm) a cue: it becomes NEXT and GO plays it. Nothing fires yet.
+      const cue = action.cueId
+        ? show.cues.find((c) => c.id === action.cueId)
+        : show.cues.find((c) => String(c.number) === String(action.number));
+      if (!cue) return state;
+      const entry = logEntry(state, cue, 'cue', action.source || 'cue', at);
+      events.push({ type: 'armed', cue, entry });
+      return { ...state, runtime: { ...runtime, armedCueId: cue.id }, log: pushLog(state, entry) };
     }
     case 'back': {
       const i = cueIndex(show, runtime.currentCueId);
@@ -212,7 +224,7 @@ function fire(state, cue, source, at, events) {
   events.push({ type: 'fired', cue, entry });
   return {
     ...state,
-    runtime: { ...state.runtime, currentCueId: cue.id, currentAt: at, lastGo: { cueId: cue.id, at, source } },
+    runtime: { ...state.runtime, currentCueId: cue.id, currentAt: at, lastGo: { cueId: cue.id, at, source }, armedCueId: null },
     log: pushLog(state, entry),
   };
 }
@@ -222,7 +234,7 @@ function move(state, cue, kind, at, events) {
   events.push({ type: 'moved', cue, entry });
   return {
     ...state,
-    runtime: { ...state.runtime, currentCueId: cue ? cue.id : null, currentAt: at },
+    runtime: { ...state.runtime, currentCueId: cue ? cue.id : null, currentAt: at, armedCueId: null },
     log: pushLog(state, entry),
   };
 }
@@ -257,7 +269,7 @@ function onTimecode(state, tcIn, at, events) {
     if (delta == null && !target) return next;
     const entry = logEntry(next, target, 'chase', tc.source, at);
     events.push({ type: 'chased', cue: target, entry });
-    return { ...next, runtime: { ...next.runtime, currentCueId: targetId, currentAt: at }, log: pushLog(next, entry) };
+    return { ...next, runtime: { ...next.runtime, currentCueId: targetId, currentAt: at, armedCueId: null }, log: pushLog(next, entry) };
   }
 
   if (!s.autoFire) return next;
