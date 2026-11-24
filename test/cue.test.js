@@ -40,3 +40,18 @@ test('unknown cue number does nothing', () => {
   assert.equal(r.state, s);
   assert.equal(r.events.length, 0);
 });
+
+test('timecode chase picks the closest earlier cue time, even when cue times are out of list order', () => {
+  let s = createState(createShow({ cues: [
+    createCue({ number: '1', name: 'Nutcracker', tc: '22:00:00:00' }),
+    createCue({ number: '2', name: 'Hark', tc: '22:10:00:00' }),
+    createCue({ number: '7.5', name: 'Podcast Video 2', tc: '19:00:00:00' }),
+    createCue({ number: '8', name: 'Mary', tc: '19:10:00:00' }),
+  ] }));
+  s = apply(s, { type: 'timecode', tc: { h: 22, m: 0, s: 0, f: 0, fps: 30, source: 'ltc' } }).state;
+  assert.equal(currentCue(s).number, '1');
+  s = apply(s, { type: 'timecode', tc: { h: 19, m: 10, s: 5, f: 0, fps: 30, source: 'ltc' } }).state;
+  assert.equal(currentCue(s).number, '8');
+  s = apply(s, { type: 'timecode', tc: { h: 22, m: 10, s: 1, f: 0, fps: 30, source: 'ltc' } }).state;
+  assert.equal(currentCue(s).number, '2');
+});

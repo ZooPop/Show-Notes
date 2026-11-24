@@ -85,12 +85,16 @@ export function countdown(state, now = state.runtime.tc) {
   return at == null ? null : at - tcSeconds(now);
 }
 
-/** The last timed cue at or before a timecode position (used for chase/locate). */
+/**
+ * The timed cue whose trigger time is the closest at or before a timecode position (used for chase/locate).
+ * Cue times don't have to be in list order: the latest time that has been reached wins; on a tie, the later cue in the list.
+ */
 export function cueForPosition(show, seconds) {
   let found = null;
+  let foundAt = -Infinity;
   for (const cue of show.cues) {
     const at = cueSeconds(show, cue);
-    if (at != null && at <= seconds + 1e-6) found = cue;
+    if (at != null && at <= seconds + 1e-6 && at >= foundAt) { found = cue; foundAt = at; }
   }
   return found;
 }
