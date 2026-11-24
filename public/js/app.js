@@ -105,6 +105,9 @@ function onServerMessage(msg) {
     case 'mediamtx':
       onMediaMTX(msg.status);
       return;
+    case 'notice':
+      showNotice(msg.text, msg.level);
+      return;
     case 'ltcLevel':
       $('#srvMeter').style.width = `${Math.min(100, msg.peak * 100)}%`;
       return;
@@ -114,6 +117,19 @@ function onServerMessage(msg) {
       return;
   }
   render(prev);
+}
+
+// Server notices (e.g. "Ableton has no marker named ...") pop up for a few seconds on operator screens.
+let noticeTimer = null;
+function showNotice(text, level = 'info') {
+  if (PHONE) return;
+  let el = $('#notice');
+  if (!el) { el = document.createElement('div'); el.id = 'notice'; el.addEventListener('click', () => (el.hidden = true)); document.body.append(el); }
+  el.className = 'notice ' + level;
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => (el.hidden = true), 12000);
 }
 
 function onEngineEvent(ev) {

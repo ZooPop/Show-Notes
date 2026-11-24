@@ -14,6 +14,7 @@ import { parseTC } from './public/js/timecode.js';
 import * as osc from './lib/osc.js';
 import { ServerLTCInput } from './lib/ltc-input.js';
 import { BuiltInMediaMTX } from './lib/mediamtx.js';
+import { AbletonMarkers } from './lib/ableton-markers.js';
 import { VERSION } from './public/js/version.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -247,26 +248,50 @@ function sendOscToTarget(address, args = []) {
   oscSocket.send(osc.encode(address, args), +port, host);
 }
 
-/** Cue up: send only the marker jump from the cue's OSC (no start_playing), so Ableton waits for GO. */
-function sendCueJump(cue) {
-  for (const line of String(cue?.osc || '').split(/[\n;]+/)) {
-    if (!/cue_point\/jump/i.test(line)) continue;
+function oscTarget() {
+  const [host, port] = String(state.show.settings.oscTarget || '').split(':');
+  return host && +port ? [host, +port] : null;
+}
+
+// Ableton markers by name: ask Ableton for its marker list and match the name loosely (AbletonOSC itself
+// needs an exact match), then jump by position. Falls back to sending the name if Ableton doesn't answer.
+const abletonMarkers = new AbletonMarkers({ target: oscTarget, sendSocket: oscSocket, replyPort: +(process.env.ABLETON_REPLY_PORT || 11001) });
+
+function notice(level, text) {
+  console.log(`${level === 'warn' ? 'WARNING: ' : ''}${text}`);
+  broadcast({ type: 'notice', level, text });
+}
+
+/** Send OSC lines (one message per line) to the OSC output target, in order. */
+async function sendOscLines(lines) {
+  const t = oscTarget();
+  if (!t) return;
+  for (const line of lines) {
     const msg = osc.parseMessageString(line);
-    if (msg) sendOscToTarget(msg.address, msg.args);
+    if (!msg) continue;
+    let args = msg.args;
+    if (/\/live\/song\/cue_point\/jump$/i.test(msg.address) && typeof args[0] === 'string') {
+      const name = args[0];
+      const { index, names } = await abletonMarkers.resolve(name);
+      if (index != null) args = [index];
+      else if (names) notice('warn', `Ableton has no marker named "${name}". Its markers are: ${names.map((n) => `"${n}"`).join(', ') || 'none'}.`);
+    }
+    oscSocket.send(osc.encode(msg.address, args), t[1], t[0]);
   }
 }
 
+const oscLines = (text) => String(text || '').split(/[\n;]+/).filter((l) => l.trim());
+
+/** Cue up: send only the marker jump from the cue's OSC (no start_playing), so Ableton waits for GO. */
+function sendCueJump(cue) {
+  sendOscLines(oscLines(cue?.osc).filter((l) => /cue_point\/jump/i.test(l))).catch((e) => console.warn(`OSC: ${e.message}`));
+}
+
 function sendCueOsc(cue, entry) {
-  const { oscTarget: target, oscOnTimecode } = state.show.settings;
-  if (!cue?.osc || !target) return;
+  if (!cue?.osc || !oscTarget()) return;
   // When playback (e.g. Ableton) is what fired the cue via timecode, don't echo a command back at it.
-  if (oscOnTimecode === false && String(entry?.source || '').startsWith('tc:')) return;
-  const [host, port] = target.split(':');
-  if (!host || !+port) return;
-  for (const line of String(cue.osc).split(/[\n;]+/)) {
-    const msg = osc.parseMessageString(line);
-    if (msg) oscSocket.send(osc.encode(msg.address, msg.args), +port, host);
-  }
+  if (state.show.settings.oscOnTimecode === false && String(entry?.source || '').startsWith('tc:')) return;
+  sendOscLines(oscLines(cue.osc)).catch((e) => console.warn(`OSC: ${e.message}`));
 }
 
 // ---- start ---------------------------------------------------------------

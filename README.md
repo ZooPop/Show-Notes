@@ -186,7 +186,7 @@ Show Notes can jump Ableton to a song's arrangement marker (locator) and press P
    /live/song/cue_point/jump 1
    /live/song/start_playing
    ```
-   The number is the marker's position in the arrangement (0 = first marker). You can use its name instead: `/live/song/cue_point/jump "Mary Did You Know"`.
+   The number is the marker's position in the arrangement (0 = first marker). You can use its name instead: `/live/song/cue_point/jump "Mary Did You Know"`. With a name, Show Notes asks Ableton for its marker list (AbletonOSC replies on UDP **11001**) and matches loosely, so capitals, extra spaces and dash style don't matter. If no marker matches, a warning pops up listing Ableton's markers.
 
 ## HTTP API
 
